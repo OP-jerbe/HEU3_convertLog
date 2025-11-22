@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 from typing import TypeAlias
 
+from PySide6.QtWidgets import QFileDialog
+
 ConfigData: TypeAlias = configparser.ConfigParser
 
 
@@ -53,6 +55,25 @@ def get_ini_info(
     com_port: str = config_data.get(section='COM_PORT', option='COM')
 
     return {'COM': com_port}
+
+
+def get_folder_path() -> Path:
+    """
+    Open a file dialog to select a folder.
+
+    Returns:
+        Path: The path to the selected folder. If the dialog is cancelled,
+             an empty string is returned.
+    """
+
+    folder_path = QFileDialog.getExistingDirectory(
+        parent=None,
+        caption='Choose Folder',
+        dir='',
+        options=QFileDialog.Option.ShowDirsOnly,
+    )
+
+    return Path(folder_path)
 
 
 if __name__ == '__main__':
