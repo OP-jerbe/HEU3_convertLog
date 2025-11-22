@@ -1,0 +1,52 @@
+GUI for convertLog.py ?
+
+The HEU logging feature is there to show us how the customers are using their
+sources, by showing us the power being dissipated and the HEU flow rate,
+reboots etc.  And of course it's super useful in perfecting the HEU and seeing
+what went wrong.  Gobs of information is recorded into an 8G micro-SD card.
+
+"convertLog" sends a command to an HEU3 and receives a pile of compact format
+log data over serial, and stores that as logname.txt.
+That file is barely human readable.
+
+Then it parses the data and stores an expanded human-readable form as
+lognameout.txt.
+
+It also generates logname.csv, which is ready for a version of our CSV viewer
+("CSV Viewer for HEU3") for plotting.
+
+The logs can be huge and take a long time to dump over USB serial.  So there is
+a number of megabytes limit paramater in the original dumplog comand to the
+HEU, which dumps the latest NNNN megabytes.  Usually 1 meg is all that's
+interesting.  This expands by about 5x when converted to CSV.  There's a lot in
+those .csv files.  The python converter is filling in things that have been
+compressed where there was no change, to make sensable plots.  The log is never
+automatically erased on the HEU.  But you can command that manually.  We should
+not implement that here, now, we could loose info.
+
+The filenames could be automatically created and let the user tweak it.
+I am using "sn1060log18..." as a standard format so far.  So serial number
+and a sequential log number for that unit.  You can ask the HEU what its SN is,
+so doing that would be a good idea rather than relying on the user to get it
+right.
+
+Remembering the log number... keep that locally in a file on the PC, but allow
+the user to change it? Then keep incrementing each dump for that HEU?
+
+Switchable options in convertLog now:
+printIt = False    # Print on console?  .txt log is always created.
+ (haven't needed this for a while, probably can leave it off or
+ strip printing out.)
+ 
+commandIt = True   # True = pull the log anew over USB from the HEU.
+ False means run on the lognameout.txt that you've already got locally.
+
+csvIt = True       # Also create .csv?
+ (need a manual switch to turn this False if the parser croaks due to something
+ wrong with the log).  Happens now only if the HEU CPU gets killed while
+ logging. Then you have to edit lognameout.txt to trim a line or some such.
+ Then run convertLog with commandIt = False and csvIt = True.
+
+Warning about possible future changes. The HEU uses a protocol with a version
+number that it will tell you if you ask (in the same command that tells you the
+ serial number: RFINF.)
