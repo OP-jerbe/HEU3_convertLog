@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TypeAlias
 
 from PySide6.QtWidgets import QFileDialog
+from serial import Serial
 
 ConfigData: TypeAlias = configparser.ConfigParser
 
@@ -74,6 +75,12 @@ def get_folder_path() -> Path:
     )
 
     return Path(folder_path)
+
+
+def connect_to_com_port(
+    com_port: str, baudrate: int = 38400, timeout: int = 1
+) -> Serial:
+    return Serial(port=com_port, baudrate=baudrate, timeout=timeout)
 
 
 if __name__ == '__main__':
