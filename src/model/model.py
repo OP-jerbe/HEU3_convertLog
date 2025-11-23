@@ -60,6 +60,8 @@ class Model(QObject):
             if ambleState == 3:
                 ambleState += 1
 
+        self.convertLog()
+
     def convertLog(self) -> None:
         date = '<none>'  # Latest read
         startDate = ''  # first date in log
