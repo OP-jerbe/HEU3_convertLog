@@ -33,8 +33,8 @@ class MainWindow(QMainWindow):
         self.create_gui()
 
     def create_gui(self) -> None:
-        window_width = int(400 * 1.5)
-        window_height = int(300 * 1.5)
+        window_width = int(300)
+        window_height = int(200)
         self.setFixedSize(window_width, window_height)
         root_dir: Path = get_root_dir()
         icon_path: str = str(root_dir / 'assets' / 'icon.ico')
