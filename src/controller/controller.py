@@ -33,10 +33,12 @@ class Controller:
     @Slot(str)
     def receive_SN_changed_sig(self, serial_number: str) -> None:
         self.model.SN = serial_number
+        self.model.fname = f'sn{serial_number}log{self.model.logNum}'
 
     @Slot(str)
     def receive_logNum_changed_sig(self, log_number: str) -> None:
         self.model.logNum = log_number
+        self.model.fname = f'sn{self.model.SN}log{log_number}'
 
 
 if __name__ == '__main__':
