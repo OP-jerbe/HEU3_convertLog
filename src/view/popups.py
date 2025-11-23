@@ -20,3 +20,10 @@ def not_connected_mb(parent=None) -> None:
     message_text = 'No serial connection. Try reconnecting.'
     buttons = QMessageBox.StandardButton.Ok
     QMessageBox.critical(parent, title_text, message_text, buttons)
+
+
+def show_save_loction_mb(save_loc: str, parent=None) -> None:
+    title_text = 'Files Saved'
+    message_text = f'Files saved to:\n\n{save_loc}'
+    buttons = QMessageBox.StandardButton.Ok
+    QMessageBox.information(parent, title_text, message_text, buttons)
