@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenuBar,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -25,6 +26,7 @@ class MainWindow(QMainWindow):
     commandIt_sig = Signal()
     SN_changed_sig = Signal(str)
     logNum_changed_sig = Signal(str)
+    connect_sig = Signal(str)
 
     def __init__(self, version: str) -> None:
         super().__init__()
@@ -78,12 +80,17 @@ class MainWindow(QMainWindow):
 
     def _create_menubar(self) -> None:
         self.exit_action = QAction(text='Exit', parent=self)
+        self.connect_action = QAction(text='Connect', parent=self)
 
         self.menu_bar = self.menuBar()
         self.file_menu = self.menu_bar.addMenu('File')
         self.help_menu = self.menu_bar.addMenu('Help')
 
         self.file_menu.addAction(self.exit_action)
+        self.file_menu.addAction(self.connect_action)
+
+        self.exit_action.triggered.connect(self.handle_exit_triggered)
+        self.connect_action.triggered.connect(self.handle_connect_triggered)
 
     def handle_printIt_clicked(self) -> None:
         if self.printIt_cb.isChecked():
@@ -98,6 +105,18 @@ class MainWindow(QMainWindow):
             self.printIt_sig.emit(False)
 
     def handle_commandIt_clicked(self) -> None:
+        # Make sure the user has put text in for the serial and log numbers.
+        if not self.SN_le.text() or not self.logNum_le.text():
+            title_text = 'Missing SN or logNum'
+            message_text = 'Please enter a serial number and/or log number.'
+            buttons = QMessageBox.StandardButton.Ok
+            QMessageBox.critical(self, title_text, message_text, buttons)
+            return
         self.SN_changed_sig.emit(self.SN_le.text())
         self.logNum_changed_sig.emit(self.logNum_le.text())
         self.commandIt_sig.emit()
+
+    def handle_connect_triggered(self) -> None: ...
+
+    def handle_exit_triggered(self) -> None:
+        self.close()
