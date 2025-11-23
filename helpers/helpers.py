@@ -1,4 +1,5 @@
 import configparser
+import ctypes
 import sys
 from pathlib import Path
 from typing import TypeAlias
@@ -7,6 +8,25 @@ from PySide6.QtWidgets import QFileDialog
 from serial import Serial
 
 ConfigData: TypeAlias = configparser.ConfigParser
+
+
+def open_console_if_needed() -> None:
+    # Only for Windows executables (pyinstaller-bundled)
+    if sys.platform.startswith('win') and not sys.stdout.isatty():
+        try:
+            # Check if we can attach to an existing console (e.g., if run from CMD)
+            if not ctypes.windll.kernel32.AttachConsole(-1):
+                # If not, allocate a new one
+                ctypes.windll.kernel32.AllocConsole()
+
+            # Redirect stdout/stderr to the new console
+            # Need to reopen file descriptors to point to the new console
+            sys.stdout = open('CONOUT$', 'w')
+            sys.stderr = open('CONOUT$', 'w')
+
+        except Exception as e:
+            # Handle potential failure to allocate console
+            print(str(e))
 
 
 def get_root_dir() -> Path:
