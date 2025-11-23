@@ -5,7 +5,7 @@ from helpers.helpers import connect_to_com_port, get_folder_path, open_console
 from ..model.model import Model
 from ..view.connection_window import ConnectionWindow
 from ..view.main_window import MainWindow
-from ..view.popups import could_not_connect_mb, not_connected_mb
+from ..view.popups import could_not_connect_mb, not_connected_mb, show_save_loction_mb
 
 
 class Controller(QObject):
@@ -86,6 +86,7 @@ class Controller(QObject):
 
     @Slot()
     def receive_worker_finished_sig(self) -> None:
+        show_save_loction_mb(save_loc=str(self.model.wdir), parent=self.view)
         self.view.commandIt_pb.setEnabled(True)
         self.view.commandIt_pb.setText('Pull Data Log')
 
