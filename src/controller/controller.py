@@ -1,6 +1,6 @@
 from PySide6.QtCore import QObject, Slot
 
-from helpers.helpers import connect_to_com_port, get_folder_path
+from helpers.helpers import connect_to_com_port, get_folder_path, open_console
 
 from ..model.model import Model
 from ..view.connection_window import ConnectionWindow
@@ -38,6 +38,8 @@ class Controller(QObject):
 
     @Slot()
     def receive_commandIt_sig(self) -> None:
+        if self.view.printIt_cb.isChecked():
+            open_console()
         self.view.commandIt_pb.setEnabled(False)
         self.view.commandIt_pb.setText('Getting Data')
         self.model.start_worker()
