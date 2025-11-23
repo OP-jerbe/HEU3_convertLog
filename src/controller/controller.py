@@ -63,13 +63,15 @@ class Controller(QObject):
         ConnectionWindow connect_sig
         """
         try:
-            self.com_port = com_port
-            self.model.ser = connect_to_com_port(self.com_port)
+            self.model.ser = connect_to_com_port(com_port)
         except Exception as e:
-            if com_port:
-                self.com_port = com_port
             self.model.ser = None
             could_not_connect_mb(error=str(e), parent=self.view)
+        finally:
+            if com_port:
+                self.com_port = com_port
+            if self.model.ser:
+                self.view.commandIt_pb.setEnabled(True)
 
     @Slot()
     def receive_not_connected_sig(self) -> None:
