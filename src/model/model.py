@@ -18,7 +18,6 @@ class Model:
         self.dateLineOffset: int = 0  # menu option
         self.printIt: bool = False  # QCheckbox in gui
         self.csvIt: bool = True  # QCheckbox in gui
-        self.commandIt: bool = True  # QCheckbox in gui
         self.megs: int = 1
         self.mute: int = 0
         self.logVersion: int = 2  # 1 = the handful from testing 9/5/24 and earlier.
@@ -31,7 +30,7 @@ class Model:
         root_dir = get_root_dir()
         return Path(root_dir / 'log_data')
 
-    def _commandIt(self) -> None:
+    def commandIt(self) -> None:
         if not self.ser:
             return
         self.ser.write(f'frlog977{self.megs:04.0f}\n'.encode())
