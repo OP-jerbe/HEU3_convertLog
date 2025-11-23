@@ -1,13 +1,16 @@
-from PySide6.QtCore import Slot
+from PySide6.QtCore import QObject, Slot
 
-from helpers.helpers import get_folder_path
+from helpers.helpers import connect_to_com_port, get_folder_path
 
 from ..model.model import Model
+from ..view.connection_window import ConnectionWindow
 from ..view.main_window import MainWindow
+from ..view.popups import could_not_connect_mb, not_connected_mb
 
 
-class Controller:
+class Controller(QObject):
     def __init__(self, com_port: str, view: MainWindow, model: Model) -> None:
+        super().__init__()
         self.com_port = com_port
         self.view = view
         self.model = model
@@ -17,6 +20,8 @@ class Controller:
         self.view.commandIt_sig.connect(self.receive_commandIt_sig)
         self.view.SN_changed_sig.connect(self.receive_SN_changed_sig)
         self.view.logNum_changed_sig.connect(self.receive_logNum_changed_sig)
+        self.view.connect_sig.connect(self.receive_MWconnect_sig)
+        self.model.not_connected_sig.connect(self.receive_not_connected_sig)
 
     @Slot(bool)
     def receive_printIt_sig(self, signal: bool) -> None:
@@ -39,6 +44,30 @@ class Controller:
     def receive_logNum_changed_sig(self, log_number: str) -> None:
         self.model.logNum = log_number
         self.model.fname = f'sn{self.model.SN}log{log_number}'
+
+    @Slot()
+    def receive_MWconnect_sig(self) -> None:
+        """
+        MainWindow connect_sig
+        """
+        connection_window = ConnectionWindow(parent=self.view, com_port=self.com_port)
+        connection_window.connect_sig.connect(self.receive_CWconnect_sig)
+        connection_window.show()
+
+    @Slot(str)
+    def receive_CWconnect_sig(self, com_port: str) -> None:
+        """
+        ConnectionWindow connect_sig
+        """
+        try:
+            self.model.ser = connect_to_com_port(com_port)
+        except Exception as e:
+            self.model.ser = None
+            could_not_connect_mb(error=str(e), parent=self.view)
+
+    @Slot()
+    def receive_not_connected_sig(self) -> None:
+        not_connected_mb(parent=self.view)
 
 
 if __name__ == '__main__':
