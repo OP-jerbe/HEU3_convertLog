@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
     SN_changed_sig = Signal(str)
     logNum_changed_sig = Signal(str)
     connect_sig = Signal()
+    change_save_dir_sig = Signal()
 
     def __init__(self, version: str) -> None:
         super().__init__()
@@ -79,7 +80,7 @@ class MainWindow(QMainWindow):
     def _create_menubar(self) -> None:
         self.exit_action = QAction(text='Exit', parent=self)
         self.connect_action = QAction(text='Connect', parent=self)
-        self.change_save_dir = QAction(text='Change Save Location', parent=self)
+        self.change_save_dir_action = QAction(text='Change Save Location', parent=self)
 
         self.menu_bar = self.menuBar()
         self.file_menu = self.menu_bar.addMenu('File')
@@ -88,10 +89,13 @@ class MainWindow(QMainWindow):
 
         self.file_menu.addAction(self.connect_action)
         self.file_menu.addAction(self.exit_action)
-        self.option_menu.addAction(self.change_save_dir)
+        self.option_menu.addAction(self.change_save_dir_action)
 
         self.exit_action.triggered.connect(self.handle_exit_triggered)
         self.connect_action.triggered.connect(self.handle_connect_triggered)
+        self.change_save_dir_action.triggered.connect(
+            self.handle_change_save_dir_triggered
+        )
 
     def handle_printIt_clicked(self) -> None:
         if self.printIt_cb.isChecked():
@@ -113,6 +117,9 @@ class MainWindow(QMainWindow):
         self.SN_changed_sig.emit(self.SN_le.text())
         self.logNum_changed_sig.emit(self.logNum_le.text())
         self.commandIt_sig.emit()
+
+    def handle_change_save_dir_triggered(self) -> None:
+        self.change_save_dir_sig.emit()
 
     def handle_connect_triggered(self) -> None:
         self.connect_sig.emit()

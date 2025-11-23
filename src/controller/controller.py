@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtCore import QObject, Slot
 
 from helpers.helpers import connect_to_com_port, get_folder_path, open_console
@@ -21,6 +23,7 @@ class Controller(QObject):
         self.view.SN_changed_sig.connect(self.receive_SN_changed_sig)
         self.view.logNum_changed_sig.connect(self.receive_logNum_changed_sig)
         self.view.connect_sig.connect(self.receive_MWconnect_sig)
+        self.view.change_save_dir_sig.connect(self.receive_change_save_dir_sig)
         self.model.not_connected_sig.connect(self.receive_not_connected_sig)
         self.model.worker_finished_sig.connect(self.receive_worker_finished_sig)
 
@@ -89,6 +92,12 @@ class Controller(QObject):
         show_save_loction_mb(save_loc=str(self.model.wdir), parent=self.view)
         self.view.commandIt_pb.setEnabled(True)
         self.view.commandIt_pb.setText('Pull Data Log')
+
+    @Slot()
+    def receive_change_save_dir_sig(self) -> None:
+        folder_path: Path = get_folder_path()
+        if folder_path:
+            self.model.wdir = folder_path
 
 
 if __name__ == '__main__':
