@@ -22,9 +22,11 @@ class Controller(QObject):
         self.view.logNum_changed_sig.connect(self.receive_logNum_changed_sig)
         self.view.connect_sig.connect(self.receive_MWconnect_sig)
         self.model.not_connected_sig.connect(self.receive_not_connected_sig)
+        self.model.worker_finished_sig.connect(self.receive_worker_finished_sig)
 
         if not self.model.ser:
             self.view.commandIt_pb.setEnabled(False)
+            self.view.commandIt_pb.setText('Not Connected')
 
     @Slot(bool)
     def receive_printIt_sig(self, signal: bool) -> None:
@@ -36,7 +38,9 @@ class Controller(QObject):
 
     @Slot()
     def receive_commandIt_sig(self) -> None:
-        self.model.commandIt()
+        self.view.commandIt_pb.setEnabled(False)
+        self.view.commandIt_pb.setText('Getting Data')
+        self.model.start_worker()
 
     @Slot(str)
     def receive_SN_changed_sig(self, serial_number: str) -> None:
@@ -72,10 +76,16 @@ class Controller(QObject):
                 self.com_port = com_port
             if self.model.ser:
                 self.view.commandIt_pb.setEnabled(True)
+                self.view.commandIt_pb.setText('Pull Data Log')
 
     @Slot()
     def receive_not_connected_sig(self) -> None:
         not_connected_mb(parent=self.view)
+
+    @Slot()
+    def receive_worker_finished_sig(self) -> None:
+        self.view.commandIt_pb.setEnabled(True)
+        self.view.commandIt_pb.setText('Pull Data Log')
 
 
 if __name__ == '__main__':

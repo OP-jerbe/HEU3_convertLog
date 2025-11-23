@@ -2,14 +2,17 @@ import math
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QThreadPool, Signal
 from serial import Serial
 
 from helpers.helpers import get_root_dir
 
+from .worker import Worker
+
 
 class Model(QObject):
     not_connected_sig = Signal()
+    worker_finished_sig = Signal()
 
     def __init__(self, ser: Serial | None) -> None:
         super().__init__()
@@ -28,39 +31,49 @@ class Model(QObject):
         # 2 switches temperatures to nn.nnC
         self.startLine: int = 0
         self.endLine: int = 20000000
+        self.threadpool = QThreadPool()
 
     @staticmethod
     def _get_data_dir() -> Path:
         root_dir = get_root_dir()
         return Path(root_dir / 'log_data')
 
-    def commandIt(self) -> None:
-        if not self.ser:
-            self.not_connected_sig.emit()
-            return
-        self.ser.write(f'frlog977{self.megs:04.0f}\n'.encode())
-        reply = self.ser.readlines(1048576 * self.megs)
-        ambleState = 0  # 0==printable preamble: command echo, file size.
-        for lines in reply:
-            readstr = str(lines.decode('utf-8'))
-            if ambleState < 2 and readstr[0:6] == 'Serial':
-                SN = readstr[14:18]
-                # Check that user input SN is the same as SN in HEU
-                if SN != self.SN:
-                    self.SN = SN
-            if readstr == '<\n':
-                ambleState = 1  # guts, first line
-            if readstr == '>\n':
-                ambleState = 3  # postamble, first line
-            if ambleState == 2:  # guts, the rest
-                with open(self.wdir / Path(self.fname) / 'out.txt', 'w') as logOut:
-                    logOut.writelines(readstr)
-            if ambleState == 1:
-                ambleState += 1
-            if ambleState == 3:
-                ambleState += 1
+    def start_worker(self) -> None:
+        self.worker = Worker(self.commandIt)
+        self.threadpool.start(self.worker)
 
-        self.convertLog()
+    def commandIt(self) -> None:
+        try:
+            if not self.ser:
+                self.not_connected_sig.emit()
+                return
+            self.ser.write(f'frlog977{self.megs:04.0f}\n'.encode())
+            reply = self.ser.readlines(1048576 * self.megs)
+            ambleState = 0  # 0==printable preamble: command echo, file size.
+            for lines in reply:
+                readstr = str(lines.decode('utf-8'))
+                if ambleState < 2 and readstr[0:6] == 'Serial':
+                    SN = readstr[14:18]
+                    # Check that user input SN is the same as SN in HEU
+                    if SN != self.SN:
+                        self.SN = SN
+                if readstr == '<\n':
+                    ambleState = 1  # guts, first line
+                if readstr == '>\n':
+                    ambleState = 3  # postamble, first line
+                if ambleState == 2:  # guts, the rest
+                    with open(self.wdir / Path(self.fname) / 'out.txt', 'w') as logOut:
+                        logOut.writelines(readstr)
+                if ambleState == 1:
+                    ambleState += 1
+                if ambleState == 3:
+                    ambleState += 1
+
+            self.convertLog()
+        except Exception:
+            pass
+        finally:
+            self.worker_finished_sig.emit()
 
     def convertLog(self) -> None:
         date = '<none>'  # Latest read
