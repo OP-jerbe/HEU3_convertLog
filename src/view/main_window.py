@@ -5,10 +5,12 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
     QGridLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
     QPushButton,
+    QVBoxLayout,
     QWidget,
 )
 from qt_material import apply_stylesheet
@@ -53,7 +55,13 @@ class MainWindow(QMainWindow):
         self.csvIt_cb.clicked.connect(self.handle_csvIt_clicked)
         self.commandIt_pb.clicked.connect(self.handle_commandIt_clicked)
 
-        main_layout = QGridLayout()
+        cb_layout = QHBoxLayout()
+        cb_layout.addWidget(self.printIt_cb)
+        cb_layout.addWidget(self.csvIt_cb)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(cb_layout)
+        main_layout.addWidget(self.commandIt_pb)
 
         container = QWidget()
         container.setLayout(main_layout)
