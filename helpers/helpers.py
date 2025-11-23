@@ -11,8 +11,7 @@ ConfigData: TypeAlias = configparser.ConfigParser
 
 
 def open_console_if_needed() -> None:
-    # Only for Windows executables (pyinstaller-bundled)
-    if sys.platform.startswith('win') and not sys.stdout.isatty():
+    if getattr(sys, 'frozen', False):
         try:
             # Check if we can attach to an existing console (e.g., if run from CMD)
             if not ctypes.windll.kernel32.AttachConsole(-1):
@@ -26,7 +25,7 @@ def open_console_if_needed() -> None:
 
         except Exception as e:
             # Handle potential failure to allocate console
-            print(str(e))
+            print(f'Could not open console\n\n{str(e)}')
 
 
 def get_root_dir() -> Path:
