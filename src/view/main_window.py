@@ -79,13 +79,16 @@ class MainWindow(QMainWindow):
     def _create_menubar(self) -> None:
         self.exit_action = QAction(text='Exit', parent=self)
         self.connect_action = QAction(text='Connect', parent=self)
+        self.change_save_dir = QAction(text='Change Save Location', parent=self)
 
         self.menu_bar = self.menuBar()
         self.file_menu = self.menu_bar.addMenu('File')
-        self.help_menu = self.menu_bar.addMenu('Help')
+        self.option_menu = self.menu_bar.addMenu('Options')
+        # self.help_menu = self.menu_bar.addMenu('Help')
 
         self.file_menu.addAction(self.connect_action)
         self.file_menu.addAction(self.exit_action)
+        self.option_menu.addAction(self.change_save_dir)
 
         self.exit_action.triggered.connect(self.handle_exit_triggered)
         self.connect_action.triggered.connect(self.handle_connect_triggered)
