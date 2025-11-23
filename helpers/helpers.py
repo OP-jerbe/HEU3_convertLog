@@ -10,7 +10,7 @@ from serial import Serial
 ConfigData: TypeAlias = configparser.ConfigParser
 
 
-def open_console_if_needed() -> None:
+def open_console() -> None:
     if getattr(sys, 'frozen', False):
         try:
             # Check if we can attach to an existing console (e.g., if run from CMD)
