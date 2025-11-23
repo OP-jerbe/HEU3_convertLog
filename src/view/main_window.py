@@ -4,13 +4,9 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
-    QGridLayout,
     QHBoxLayout,
-    QLabel,
     QLineEdit,
     QMainWindow,
-    QMenuBar,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -19,6 +15,8 @@ from qt_material import apply_stylesheet
 
 from helpers.helpers import get_root_dir
 
+from ..view.popups import missing_SN_logNum_mb
+
 
 class MainWindow(QMainWindow):
     csvIt_sig = Signal(bool)
@@ -26,7 +24,7 @@ class MainWindow(QMainWindow):
     commandIt_sig = Signal()
     SN_changed_sig = Signal(str)
     logNum_changed_sig = Signal(str)
-    connect_sig = Signal(str)
+    connect_sig = Signal()
 
     def __init__(self, version: str) -> None:
         super().__init__()
@@ -86,8 +84,8 @@ class MainWindow(QMainWindow):
         self.file_menu = self.menu_bar.addMenu('File')
         self.help_menu = self.menu_bar.addMenu('Help')
 
-        self.file_menu.addAction(self.exit_action)
         self.file_menu.addAction(self.connect_action)
+        self.file_menu.addAction(self.exit_action)
 
         self.exit_action.triggered.connect(self.handle_exit_triggered)
         self.connect_action.triggered.connect(self.handle_connect_triggered)
@@ -107,16 +105,14 @@ class MainWindow(QMainWindow):
     def handle_commandIt_clicked(self) -> None:
         # Make sure the user has put text in for the serial and log numbers.
         if not self.SN_le.text() or not self.logNum_le.text():
-            title_text = 'Missing SN or logNum'
-            message_text = 'Please enter a serial number and/or log number.'
-            buttons = QMessageBox.StandardButton.Ok
-            QMessageBox.critical(self, title_text, message_text, buttons)
+            missing_SN_logNum_mb(self)  # error message box
             return
         self.SN_changed_sig.emit(self.SN_le.text())
         self.logNum_changed_sig.emit(self.logNum_le.text())
         self.commandIt_sig.emit()
 
-    def handle_connect_triggered(self) -> None: ...
+    def handle_connect_triggered(self) -> None:
+        self.connect_sig.emit()
 
     def handle_exit_triggered(self) -> None:
         self.close()
