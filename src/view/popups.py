@@ -27,3 +27,10 @@ def show_save_loction_mb(save_loc: str, parent=None) -> None:
     message_text = f'Log saved to:\n\n{save_loc}'
     buttons = QMessageBox.StandardButton.Ok
     QMessageBox.information(parent, title_text, message_text, buttons)
+
+
+def commandIt_failed_mb(error: str, parent=None) -> None:
+    title_text = 'Download Failed'
+    message_text = f'Error Message:\n\n{error}'
+    buttons = QMessageBox.StandardButton.Ok
+    QMessageBox.critical(parent, title_text, message_text, buttons)

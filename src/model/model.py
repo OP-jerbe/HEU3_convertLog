@@ -13,6 +13,7 @@ from .worker import Worker
 class Model(QObject):
     not_connected_sig = Signal()
     worker_finished_sig = Signal()
+    commandIt_failed_sig = Signal(str)
 
     def __init__(self, ser: Serial | None) -> None:
         super().__init__()
@@ -70,8 +71,8 @@ class Model(QObject):
                     ambleState += 1
 
             self.convertLog()
-        except Exception:
-            pass
+        except Exception as e:
+            self.commandIt_failed_sig.emit(str(e))
         finally:
             self.worker_finished_sig.emit()
 

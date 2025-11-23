@@ -7,7 +7,12 @@ from helpers.helpers import connect_to_com_port, get_folder_path, open_console
 from ..model.model import Model
 from ..view.connection_window import ConnectionWindow
 from ..view.main_window import MainWindow
-from ..view.popups import could_not_connect_mb, not_connected_mb, show_save_loction_mb
+from ..view.popups import (
+    commandIt_failed_mb,
+    could_not_connect_mb,
+    not_connected_mb,
+    show_save_loction_mb,
+)
 
 
 class Controller(QObject):
@@ -26,6 +31,7 @@ class Controller(QObject):
         self.view.change_save_dir_sig.connect(self.receive_change_save_dir_sig)
         self.model.not_connected_sig.connect(self.receive_not_connected_sig)
         self.model.worker_finished_sig.connect(self.receive_worker_finished_sig)
+        self.model.commandIt_failed_sig.connect(self.receive_commandIt_failed_sig)
 
         if not self.model.ser:
             self.view.commandIt_pb.setEnabled(False)
@@ -98,6 +104,10 @@ class Controller(QObject):
         folder_path: Path = get_folder_path()
         if folder_path:
             self.model.wdir = folder_path
+
+    @Slot(str)
+    def receive_commandIt_failed_sig(self, error: str) -> None:
+        commandIt_failed_mb(error, parent=self.view)
 
 
 if __name__ == '__main__':
