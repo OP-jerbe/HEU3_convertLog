@@ -22,7 +22,7 @@ from helpers.helpers import get_root_dir
 class MainWindow(QMainWindow):
     csvIt_sig = Signal(bool)
     printIt_sig = Signal(bool)
-    commandIt_sig = Signal(bool)
+    commandIt_sig = Signal()
     SN_changed_sig = Signal(str)
     logNum_changed_sig = Signal(str)
 
@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         self.create_gui()
 
     def create_gui(self) -> None:
-        window_width = int(300)
+        window_width = int(330)
         window_height = int(200)
         self.setFixedSize(window_width, window_height)
         root_dir: Path = get_root_dir()
