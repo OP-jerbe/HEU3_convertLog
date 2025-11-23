@@ -1,0 +1,59 @@
+This application uses the PySide6 library (v.6.9.3), which is provided under the terms of the GNU Lesser General Public License, Version 3 (LGPLv3).
+
+In compliance with the LGPLv3, the user is entitled to receive the corresponding source code for the PySide6 and 
+Qt components used in this application, and to modify and re-link the application with a user-modified version of those libraries.
+
+The complete and unmodified source code for the PySide6 library, as well as the underlying Qt framework, 
+can be accessed through the official public repositories maintained by the Qt Project:
+
+    PySide6 Source Code (Qt for Python):
+
+        URL: https://code.qt.io/cgit/pyside/pyside-setup.git
+
+        (Note: The exact version used by this application can be found in the bundled files or application documentation).
+
+    Qt Framework Source Code:
+
+        URL: https://download.qt.io/archive/qt/
+
+        (This link provides access to all public releases of the Qt framework used by PySide6).
+
+Alternatively, if you are unable to download the source code using the links provided above,
+we hereby make a written offer to provide the Corresponding Source Code for the LGPLv3-covered
+components (PySide6/Qt) for a charge no more than the cost of performing this distribution (e.g., the cost of media, shipping, and handling).
+
+To request a copy of the source code, please contact us at:
+
+    Email: support@oregon-physics.com
+
+    Postal Address: 15236 NW Greenbrier Pkwy, Beaverton, OR 97006
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This application uses the qt-material library, which is provided under the terms of the BSD 2-Clause License.
+
+In compliance with the BSD 2-Clause License the full text of the license is provided here:
+
+    Copyright (c) 2020, GCPDS
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
