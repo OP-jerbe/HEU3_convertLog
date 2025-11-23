@@ -60,8 +60,11 @@ class Controller(QObject):
         ConnectionWindow connect_sig
         """
         try:
-            self.model.ser = connect_to_com_port(com_port)
+            self.com_port = com_port.upper()
+            self.model.ser = connect_to_com_port(self.com_port)
         except Exception as e:
+            if com_port:
+                self.com_port = com_port.upper()
             self.model.ser = None
             could_not_connect_mb(error=str(e), parent=self.view)
 
