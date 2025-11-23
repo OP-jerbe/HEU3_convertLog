@@ -2,13 +2,17 @@ import math
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from PySide6.QtCore import QObject, Signal
 from serial import Serial
 
 from helpers.helpers import get_root_dir
 
 
-class Model:
+class Model(QObject):
+    not_connected_sig = Signal()
+
     def __init__(self, ser: Serial | None) -> None:
+        super().__init__()
         self.ser = ser
         self.logNum: str = ''  # QLineEdit in gui
         self.SN: str = ''  # QLineEdit or pull from the HEU (need HEU3 API)
@@ -32,6 +36,7 @@ class Model:
 
     def commandIt(self) -> None:
         if not self.ser:
+            self.not_connected_sig.emit()
             return
         self.ser.write(f'frlog977{self.megs:04.0f}\n'.encode())
         reply = self.ser.readlines(1048576 * self.megs)
