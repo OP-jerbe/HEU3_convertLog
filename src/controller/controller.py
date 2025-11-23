@@ -15,6 +15,8 @@ class Controller:
         self.view.printIt_sig.connect(self.receive_printIt_sig)
         self.view.csvIt_sig.connect(self.receive_csvIt_sig)
         self.view.commandIt_sig.connect(self.receive_commandIt_sig)
+        self.view.SN_changed_sig.connect(self.receive_SN_changed_sig)
+        self.view.logNum_changed_sig.connect(self.receive_logNum_changed_sig)
 
     @Slot(bool)
     def receive_printIt_sig(self, signal: bool) -> None:
@@ -27,6 +29,14 @@ class Controller:
     @Slot()
     def receive_commandIt_sig(self) -> None:
         self.model.commandIt()
+
+    @Slot(str)
+    def receive_SN_changed_sig(self, serial_number: str) -> None:
+        self.model.SN = serial_number
+
+    @Slot(str)
+    def receive_logNum_changed_sig(self, log_number: str) -> None:
+        self.model.logNum = log_number
 
 
 if __name__ == '__main__':
