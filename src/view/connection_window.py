@@ -47,7 +47,7 @@ class ConnectionWindow(QWidget):
         """
         Tell the Controller to try and establish serial communication with the given com port.
         """
-        self.connect_sig.emit(self.com_port_le.text())
+        self.connect_sig.emit(self.com_port_le.text().upper())
 
 
 if __name__ == '__main__':
