@@ -23,6 +23,9 @@ class Controller(QObject):
         self.view.connect_sig.connect(self.receive_MWconnect_sig)
         self.model.not_connected_sig.connect(self.receive_not_connected_sig)
 
+        if not self.model.ser:
+            self.view.commandIt_pb.setEnabled(False)
+
     @Slot(bool)
     def receive_printIt_sig(self, signal: bool) -> None:
         self.model.printIt = signal
