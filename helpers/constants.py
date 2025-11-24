@@ -1,4 +1,4 @@
-VERSION: str = '1.0.1'
+VERSION: str = '1.1.0'
 COM_PORT: str = 'COM9'
 LOG_VERSION: int = 2
 TIME_ZONE_OFFSET: int = 0
