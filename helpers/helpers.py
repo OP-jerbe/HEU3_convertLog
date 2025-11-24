@@ -73,6 +73,7 @@ def get_ini_info(
     ini_file_path: str = str(root_dir / config_dir / ini_file)
     config_data: ConfigData = load_config(ini_file_path)
     com_port: str = config_data.get(section='COM_PORT', option='COM')
+    logVersion: int = int(config_data.get(section='LOG_VERSION', option='LOG_VERSION'))
     timeZoneOffset: int = int(
         config_data.get(section='TIME_ZONE_OFFSET', option='TIME_ZONE_OFFSET')
     )
@@ -83,16 +84,15 @@ def get_ini_info(
     mute: int = int(config_data.get(section='MUTE', option='MUTE'))
     startLine: int = int(config_data.get(section='START_LINE', option='START_LINE'))
     endLine: int = int(config_data.get(section='END_LINE', option='END_LINE'))
-    logVersion: int = int(config_data.get(section='LOG_VERSION', option='LOG_VERSION'))
     return {
         'COM': com_port,
+        'LOG_VERSION': logVersion,
         'TIME_ZONE_OFFSET': timeZoneOffset,
         'DATE_LINE_OFFSET': dateLineOffset,
         'MEGS': megs,
         'MUTE': mute,
         'START_LINE': startLine,
         'END_LINE': endLine,
-        'LOG_VERSION': logVersion,
     }
 
 
