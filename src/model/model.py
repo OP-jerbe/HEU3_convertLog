@@ -26,7 +26,6 @@ class Model(QObject):
         self.SN: str = ''  # QLineEdit or pull from the HEU (need HEU3 API)
         self.fname = f'sn{self.SN}log{self.logNum}'
         self.wdir: Path = self._get_data_dir()  # menu option to set
-        print(f'{self.wdir = }')
         self.timeZoneOffset: int = 0  # menu option
         self.dateLineOffset: int = 0  # menu option
         self.printIt: bool = False  # QCheckbox in gui
