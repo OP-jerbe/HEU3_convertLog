@@ -59,7 +59,7 @@ def load_config(file_name: str) -> ConfigData:
 def get_ini_info(
     config_dir: str = 'configuration',
     ini_file: str = 'config.ini',
-) -> dict[str, str]:
+) -> dict[str, str | int]:
     """
     Get the initialization information from the .ini file that is
     in the configuration folder.
@@ -73,8 +73,27 @@ def get_ini_info(
     ini_file_path: str = str(root_dir / config_dir / ini_file)
     config_data: ConfigData = load_config(ini_file_path)
     com_port: str = config_data.get(section='COM_PORT', option='COM')
-
-    return {'COM': com_port}
+    timeZoneOffset: int = int(
+        config_data.get(section='TIME_ZONE_OFFSET', option='TIME_ZONE_OFFSET')
+    )
+    dateLineOffset: int = int(
+        config_data.get(section='DATE_LINE_OFFSET', option='DATE_LINE_OFFSET')
+    )
+    megs: int = int(config_data.get(section='MEGS', option='MEGS'))
+    mute: int = int(config_data.get(section='MUTE', option='MUTE'))
+    startLine: int = int(config_data.get(section='START_LINE', option='START_LINE'))
+    endLine: int = int(config_data.get(section='END_LINE', option='END_LINE'))
+    logVersion: int = int(config_data.get(section='LOG_VERSION', option='LOG_VERSION'))
+    return {
+        'COM': com_port,
+        'TIME_ZONE_OFFSET': timeZoneOffset,
+        'DATE_LINE_OFFSET': dateLineOffset,
+        'MEGS': megs,
+        'MUTE': mute,
+        'START_LINE': startLine,
+        'END_LINE': endLine,
+        'LOG_VERSION': logVersion,
+    }
 
 
 def get_folder_path() -> str:
@@ -94,12 +113,6 @@ def get_folder_path() -> str:
     )
 
     return folder_path
-
-
-def connect_to_com_port(
-    com_port: str, baudrate: int = 38400, timeout: int = 1
-) -> Serial:
-    return Serial(port=com_port, baudrate=baudrate, timeout=timeout)
 
 
 if __name__ == '__main__':

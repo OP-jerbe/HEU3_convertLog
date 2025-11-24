@@ -20,49 +20,34 @@ class Model(QObject):
 
     def __init__(self) -> None:
         super().__init__()
+        # Load in the constants
         self.com_port: str = C.COM_PORT
-        self.ser: Serial | None = None
+        self.logVersion: int = C.LOG_VERSION
+        self.timeZoneOffset: int = C.TIME_ZONE_OFFSET
+        self.dateLineOffset: int = C.DATE_LINE_OFFSET
+        self.megs: int = C.MEGS
+        self.mute: int = C.MUTE
+        self.startLine: int = C.START_LINE
+        self.endLine: int = C.END_LINE
+
         self.logNum: str = ''  # QLineEdit in gui
         self.SN: str = ''  # QLineEdit or pull from the HEU (need HEU3 API)
         self.fname = f'sn{self.SN}log{self.logNum}'
         self.wdir: Path = self._get_data_dir()  # menu option to set
-        self.timeZoneOffset: int = 0  # menu option
-        self.dateLineOffset: int = 0  # menu option
         self.printIt: bool = False  # QCheckbox in gui
         self.csvIt: bool = True  # QCheckbox in gui
-        self.megs: int = 1
-        self.mute: int = 0
-        self.logVersion: int = 2  # 1 = the handful from testing 9/5/24 and earlier.
-        # 2 switches temperatures to nn.nnC
-        self.startLine: int = 0
-        self.endLine: int = 20000000
         self.threadpool = QThreadPool()
 
+        self.ser: Serial | None = None
+
         self.serial_connect(self.com_port)
-
-    def serial_connect(self, com_port: str) -> None:
-        try:
-            self.ser = h.connect_to_com_port(com_port)
-            self.connected_sig.emit()
-        except Exception as e:
-            self.ser = None
-            self.not_connected_sig.emit(str(e))
-
-    def change_save_dir(self) -> None:
-        folder_path: str = h.get_folder_path()
-        if folder_path:
-            self.wdir = Path(folder_path)
 
     @staticmethod
     def _get_data_dir() -> Path:
         root_dir = h.get_root_dir()
         return Path(root_dir / 'log_data')
 
-    def start_worker(self) -> None:
-        self.worker = Worker(self.commandIt)
-        self.threadpool.start(self.worker)
-
-    def commandIt(self) -> None:
+    def _commandIt(self) -> None:
         try:
             if not self.ser:
                 self.not_connected_sig.emit()
@@ -89,13 +74,13 @@ class Model(QObject):
                 if ambleState == 3:
                     ambleState += 1
 
-            self.convertLog()
+            self._convertLog()
         except Exception as e:
             self.commandIt_failed_sig.emit(str(e))
         finally:
             self.worker_finished_sig.emit()
 
-    def convertLog(self) -> None:
+    def _convertLog(self) -> None:
         date = '<none>'  # Latest read
         startDate = ''  # first date in log
         endDate = ''  # last date in log
@@ -752,3 +737,24 @@ class Model(QObject):
         if endDate:  # This line isn't in the .csv file in any case:
             print('End  :', endDate, endTime, endSecs)
         print(linenum, 'lines +', extraLines, 'added')
+
+    def serial_connect(self, com_port: str) -> None:
+        try:
+            self.ser = Serial(port=com_port, baudrate=38400, timeout=1)
+            self.connected_sig.emit()
+        except Exception as e:
+            self.ser = None
+            self.not_connected_sig.emit(str(e))
+
+    def change_save_dir(self) -> None:
+        folder_path: str = h.get_folder_path()
+        if folder_path:
+            self.wdir = Path(folder_path)
+
+    def start_commandIt_worker(self) -> None:
+        self.worker = Worker(self._commandIt)
+        self.threadpool.start(self.worker)
+
+    def start_convertLog_worker(self) -> None:
+        self.worker = Worker(self._convertLog)
+        self.threadpool.start(self.worker)

@@ -36,7 +36,7 @@ class Controller(QObject):
     def receive_commandIt_sig(self, signal: bool) -> None:
         if signal:
             h.open_console()
-        self.model.start_worker()
+        self.model.start_commandIt_worker()
 
     @Slot(str)
     def receive_SN_changed_sig(self, serial_number: str) -> None:
