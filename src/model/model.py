@@ -5,23 +5,28 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QThreadPool, Signal
 from serial import Serial
 
-from helpers.helpers import get_root_dir
+import helpers.constants as C
+import helpers.helpers as h
 
 from .worker import Worker
 
 
 class Model(QObject):
-    not_connected_sig = Signal()
+    # Define Signals to emit to View
+    connected_sig = Signal()
+    not_connected_sig = Signal(str)
     worker_finished_sig = Signal()
     commandIt_failed_sig = Signal(str)
 
-    def __init__(self, ser: Serial | None) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.ser = ser
+        self.com_port: str = C.COM_PORT
+        self.ser: Serial | None = None
         self.logNum: str = ''  # QLineEdit in gui
         self.SN: str = ''  # QLineEdit or pull from the HEU (need HEU3 API)
         self.fname = f'sn{self.SN}log{self.logNum}'
         self.wdir: Path = self._get_data_dir()  # menu option to set
+        print(f'{self.wdir = }')
         self.timeZoneOffset: int = 0  # menu option
         self.dateLineOffset: int = 0  # menu option
         self.printIt: bool = False  # QCheckbox in gui
@@ -34,9 +39,25 @@ class Model(QObject):
         self.endLine: int = 20000000
         self.threadpool = QThreadPool()
 
+        self.serial_connect(self.com_port)
+
+    def serial_connect(self, com_port: str) -> None:
+        try:
+            self.ser = h.connect_to_com_port(com_port)
+            self.connected_sig.emit()
+        except Exception as e:
+            self.ser = None
+            self.not_connected_sig.emit(str(e))
+
+    def change_save_dir(self) -> None:
+        folder_path: str = h.get_folder_path()
+        if folder_path:
+            self.wdir = Path(folder_path)
+        print(f'{self.wdir = }')
+
     @staticmethod
     def _get_data_dir() -> Path:
-        root_dir = get_root_dir()
+        root_dir = h.get_root_dir()
         return Path(root_dir / 'log_data')
 
     def start_worker(self) -> None:

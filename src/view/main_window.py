@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -13,32 +13,48 @@ from PySide6.QtWidgets import (
 )
 from qt_material import apply_stylesheet
 
-from helpers.helpers import get_root_dir
+import helpers.constants as c
+import helpers.helpers as h
+import src.view.popups as popup
 
-from ..view.popups import missing_SN_logNum_mb
+from ..model.model import Model
+from ..view.connection_window import ConnectionWindow
 
 
 class MainWindow(QMainWindow):
+    # Define Signals to emit to Controller
     csvIt_sig = Signal(bool)
     printIt_sig = Signal(bool)
-    commandIt_sig = Signal()
+    commandIt_sig = Signal(bool)
     SN_changed_sig = Signal(str)
     logNum_changed_sig = Signal(str)
-    connect_sig = Signal()
+    MWconnect_sig = Signal()
     change_save_dir_sig = Signal()
 
-    def __init__(self, version: str) -> None:
+    def __init__(self, model: Model) -> None:
         super().__init__()
-        self.version = version
+        self.version = c.VERSION
+
+        self.model = model
+        self.model.connected_sig.connect(self.receive_connected_sig)
+        self.model.not_connected_sig.connect(self.receive_not_connected_sig)
+        self.model.commandIt_failed_sig.connect(self.receive_commandIt_failed_sig)
+        self.model.worker_finished_sig.connect(self.receive_worker_finished_sig)
+
         self.logNum: str = ''
         self.SN: str = ''
+
+        self.connection_window = ConnectionWindow(
+            parent=self, com_port=self.model.com_port
+        )
+
         self.create_gui()
 
     def create_gui(self) -> None:
         window_width = int(330)
         window_height = int(200)
         self.setFixedSize(window_width, window_height)
-        root_dir: Path = get_root_dir()
+        root_dir: Path = h.get_root_dir()
         icon_path: str = str(root_dir / 'assets' / 'icon.ico')
         self.setWindowIcon(QIcon(icon_path))
         self.setWindowTitle(f'HEU3 convertLog (v{self.version})')
@@ -112,17 +128,40 @@ class MainWindow(QMainWindow):
     def handle_commandIt_clicked(self) -> None:
         # Make sure the user has put text in for the serial and log numbers.
         if not self.SN_le.text() or not self.logNum_le.text():
-            missing_SN_logNum_mb(self)  # error message box
+            popup.missing_SN_logNum_mb(self)  # error message box
             return
+        self.commandIt_pb.setEnabled(False)
+        self.commandIt_pb.setText('Getting Data')
         self.SN_changed_sig.emit(self.SN_le.text())
         self.logNum_changed_sig.emit(self.logNum_le.text())
-        self.commandIt_sig.emit()
+        self.commandIt_sig.emit(self.printIt_cb.isChecked())
 
     def handle_change_save_dir_triggered(self) -> None:
         self.change_save_dir_sig.emit()
 
     def handle_connect_triggered(self) -> None:
-        self.connect_sig.emit()
+        self.connection_window.show()
 
     def handle_exit_triggered(self) -> None:
         self.close()
+
+    @Slot()
+    def receive_connected_sig(self) -> None:
+        self.commandIt_pb.setEnabled(True)
+        self.commandIt_pb.setText('Pull Data Log')
+
+    @Slot(str)
+    def receive_not_connected_sig(self, error: str) -> None:
+        self.commandIt_pb.setEnabled(False)
+        self.commandIt_pb.setText('Not Connected')
+        popup.could_not_connect_mb(error, parent=self)
+
+    @Slot()
+    def receive_worker_finished_sig(self) -> None:
+        popup.show_save_loction_mb(save_loc=str(self.model.wdir), parent=self)
+        self.commandIt_pb.setEnabled(True)
+        self.commandIt_pb.setText('Pull Data Log')
+
+    @Slot(str)
+    def receive_commandIt_failed_sig(self, error: str) -> None:
+        popup.commandIt_failed_mb(error, parent=self)

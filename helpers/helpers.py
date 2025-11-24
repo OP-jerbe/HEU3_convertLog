@@ -77,7 +77,7 @@ def get_ini_info(
     return {'COM': com_port}
 
 
-def get_folder_path() -> Path:
+def get_folder_path() -> str:
     """
     Open a file dialog to select a folder.
 
@@ -86,14 +86,14 @@ def get_folder_path() -> Path:
              an empty string is returned.
     """
 
-    folder_path = QFileDialog.getExistingDirectory(
+    folder_path: str = QFileDialog.getExistingDirectory(
         parent=None,
         caption='Choose Folder',
         dir='',
         options=QFileDialog.Option.ShowDirsOnly,
     )
 
-    return Path(folder_path)
+    return folder_path
 
 
 def connect_to_com_port(

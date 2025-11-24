@@ -9,7 +9,7 @@ from helpers.helpers import get_root_dir
 
 
 class ConnectionWindow(QWidget):
-    connect_sig = Signal(str)
+    CWconnect_sig = Signal(str)
 
     def __init__(self, com_port: str, parent=None) -> None:
         super().__init__(parent)
@@ -47,7 +47,7 @@ class ConnectionWindow(QWidget):
         """
         Tell the Controller to try and establish serial communication with the given com port.
         """
-        self.connect_sig.emit(self.com_port_le.text().upper())
+        self.CWconnect_sig.emit(self.com_port_le.text().upper())
 
 
 if __name__ == '__main__':
