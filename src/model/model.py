@@ -52,7 +52,6 @@ class Model(QObject):
         folder_path: str = h.get_folder_path()
         if folder_path:
             self.wdir = Path(folder_path)
-        print(f'{self.wdir = }')
 
     @staticmethod
     def _get_data_dir() -> Path:
