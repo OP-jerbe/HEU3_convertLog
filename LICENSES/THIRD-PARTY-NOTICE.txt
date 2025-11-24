@@ -1,4 +1,4 @@
-This application uses the PySide6 library (v.6.9.3), which is provided under the terms of the GNU Lesser General Public License, Version 3 (LGPLv3).
+This application uses the PySide6 library (v6.9.3), which is provided under the terms of the GNU Lesser General Public License, Version 3 (LGPLv3).
 
 In compliance with the LGPLv3, the user is entitled to receive the corresponding source code for the PySide6 and 
 Qt components used in this application, and to modify and re-link the application with a user-modified version of those libraries.
