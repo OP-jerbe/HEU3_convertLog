@@ -19,6 +19,7 @@ class Controller(QObject):
         self.view.printIt_sig.connect(self.receive_printIt_sig)
         self.view.csvIt_sig.connect(self.receive_csvIt_sig)
         self.view.commandIt_sig.connect(self.receive_commandIt_sig)
+        self.view.convertLog_sig.connect(self.receive_convertLog_sig)
         self.view.SN_changed_sig.connect(self.receive_SN_changed_sig)
         self.view.logNum_changed_sig.connect(self.receive_logNum_changed_sig)
         self.view.change_save_dir_sig.connect(self.receive_change_save_dir_sig)
@@ -32,11 +33,15 @@ class Controller(QObject):
     def receive_csvIt_sig(self, signal: bool) -> None:
         self.model.csvIt = signal
 
+    @Slot()
+    def receive_commandIt_sig(self) -> None:
+        self.model.start_commandIt_worker()
+
     @Slot(bool)
-    def receive_commandIt_sig(self, signal: bool) -> None:
+    def receive_convertLog_sig(self, signal: bool) -> None:
         if signal:
             h.open_console()
-        self.model.start_commandIt_worker()
+        self.model.start_convertLog_worker()
 
     @Slot(str)
     def receive_SN_changed_sig(self, serial_number: str) -> None:

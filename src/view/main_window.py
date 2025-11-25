@@ -29,7 +29,8 @@ class MainWindow(QMainWindow):
     # Define Signals to emit to Controller
     csvIt_sig = Signal(bool)
     printIt_sig = Signal(bool)
-    commandIt_sig = Signal(bool)
+    commandIt_sig = Signal()
+    convertLog_sig = Signal(bool)
     SN_changed_sig = Signal(str)
     logNum_changed_sig = Signal(str)
     MWconnect_sig = Signal()
@@ -43,7 +44,13 @@ class MainWindow(QMainWindow):
         self.model.connected_sig.connect(self.receive_connected_sig)
         self.model.not_connected_sig.connect(self.receive_not_connected_sig)
         self.model.commandIt_failed_sig.connect(self.receive_commandIt_failed_sig)
-        self.model.worker_finished_sig.connect(self.receive_worker_finished_sig)
+        self.model.convertLog_failed_sig.connect(self.receive_convertLog_failed_sig)
+        self.model.commandIt_worker_finished_sig.connect(
+            self.receive_commandIt_worker_finished_sig
+        )
+        self.model.convertLog_worker_finished_sig.connect(
+            self.receive_convertLog_worker_finished_sig
+        )
 
         self.logNum: str = ''
         self.SN: str = ''
@@ -163,10 +170,10 @@ class MainWindow(QMainWindow):
             popup.missing_SN_logNum_mb(self)  # error message box
             return
         self.commandIt_pb.setEnabled(False)
-        self.commandIt_pb.setText('Getting Data')
+        self.commandIt_pb.setText('Getting Data...')
         self.SN_changed_sig.emit(self.SN_le.text())
         self.logNum_changed_sig.emit(self.logNum_le.text())
-        self.commandIt_sig.emit(self.printIt_cb.isChecked())
+        self.commandIt_sig.emit()
 
     def handle_change_save_dir_triggered(self) -> None:
         self.change_save_dir_sig.emit()
@@ -178,7 +185,9 @@ class MainWindow(QMainWindow):
         self.close()
 
     def handle_convertLog_clicked(self) -> None:
-        print('clicked')
+        self.convertLog_pb.setEnabled(False)
+        self.convertLog_pb.setText('Converting Log...')
+        self.convertLog_sig.emit(self.printIt_cb.isChecked())
 
     @Slot()
     def receive_connected_sig(self) -> None:
@@ -192,11 +201,27 @@ class MainWindow(QMainWindow):
         popup.could_not_connect_mb(error, parent=self)
 
     @Slot()
-    def receive_worker_finished_sig(self) -> None:
-        popup.show_save_loction_mb(save_loc=str(self.model.wdir), parent=self)
+    def receive_commandIt_worker_finished_sig(self, success: bool) -> None:
+        if success:
+            popup.show_save_loction_mb(save_loc=str(self.model.wdir), parent=self)
         self.commandIt_pb.setEnabled(True)
         self.commandIt_pb.setText('Pull Data Log')
 
     @Slot(str)
     def receive_commandIt_failed_sig(self, error: str) -> None:
+        self.commandIt_pb.setEnabled(True)
+        self.commandIt_pb.setText('Pull Data Log')
         popup.commandIt_failed_mb(error, parent=self)
+
+    @Slot(bool)
+    def receive_convertLog_worker_finished_sig(self, success: bool) -> None:
+        if success:
+            popup.show_save_loction_mb(save_loc=str(self.model.wdir), parent=self)
+        self.convertLog_pb.setEnabled(True)
+        self.convertLog_pb.setText('Convert Log')
+
+    @Slot(str)
+    def receive_convertLog_failed_sig(self, error: str) -> None:
+        self.convertLog_pb.setEnabled(True)
+        self.convertLog_pb.setText('Convert Log')
+        popup.convertLog_failed_mb(error, parent=self)

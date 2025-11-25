@@ -34,3 +34,10 @@ def commandIt_failed_mb(error: str, parent=None) -> None:
     message_text = f'Error Message:\n\n{error}'
     buttons = QMessageBox.StandardButton.Ok
     QMessageBox.critical(parent, title_text, message_text, buttons)
+
+
+def convertLog_failed_mb(error: str, parent=None) -> None:
+    title_text = 'Conversion Failed'
+    message_text = f'Error Message:\n\n{error}'
+    buttons = QMessageBox.StandardButton.Ok
+    QMessageBox.critical(parent, title_text, message_text, buttons)
