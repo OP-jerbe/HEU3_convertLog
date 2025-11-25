@@ -236,7 +236,7 @@ class Model(QObject):
                                 txt, f'{date} {time}:{secs}'
                             )  # ...28 charactors allowed...
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(txt + f' {date} {time}:{secs}\n')
                     #  combined |= ((unsigned)pumpsHighTempShutdown&0x1)<<1; //bit1
@@ -250,7 +250,7 @@ class Model(QObject):
                         if self.printIt:
                             print(txt, f'{date} {time}:{secs}')
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(txt + f' {date} {time}:{secs}\n')
                     #  combined |= ((unsigned)pumpSelection&0x3)<<2;         //bit2, bit3
@@ -268,7 +268,7 @@ class Model(QObject):
                         if self.printIt:
                             print(txt, f'{date} {time}:{secs}')
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(txt + f' {date} {time}:{secs}\n')
                     #  combined |= ((unsigned)pumpShutdownOverride&0x1)<<4;  //bit4
@@ -282,7 +282,7 @@ class Model(QObject):
                         if self.printIt:
                             print(txt, f'{date} {time}:{secs}')
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(txt + f' {date} {time}:{secs}\n')
                     #  combined |= ((unsigned)p1CurrentHigh&0x1)<<5;         //bit5
@@ -296,7 +296,7 @@ class Model(QObject):
                         if self.printIt:
                             print(txt, f'{date} {time}:{secs}')
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(txt + f' {date} {time}:{secs}\n')
                     #  combined |= ((unsigned)p2CurrentHigh&0x1)<<6;         //bit6
@@ -310,7 +310,7 @@ class Model(QObject):
                         if self.printIt:
                             print(txt, f'{date} {time}:{secs}')
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(txt + f' {date} {time}:{secs}\n')
                     #  combined |= ((unsigned)maxIp1<<7);                    //bits 7-14
@@ -322,7 +322,7 @@ class Model(QObject):
                                 f'Max pump 1 current {maxIp1:4.1f} A   {date} {time}{secs}'
                             )
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(
                                 f'Max pump 1 current {maxIp1:4.1f} A   {date} {time}:{secs}\n'
@@ -336,7 +336,7 @@ class Model(QObject):
                                 f'Max pump 2 current {maxIp2:4.1f} A   {date} {time}{secs}'
                             )
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(
                                 f'Max pump 2 current {maxIp2:4.1f} A   {date} {time}:{secs}\n'
@@ -457,7 +457,7 @@ class Model(QObject):
                     # Now determine and print if the unit rebooted without a shutdown or WDT reboot message:
                     if bMysteryRestart:  # Restart without reason!
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(
                                 f'Restart without Shutdown!   {date} {time}:{secs}\n'
@@ -535,7 +535,7 @@ class Model(QObject):
                         if self.printIt:
                             print(txt, f'{date} {time}{lastSecs}')
                         with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'w'
+                            self.wdir / Path(self.fname + 'out.txt'), 'a'
                         ) as logOut:
                             logOut.write(txt + f' {date} {time}:{secs}\n')
                     # if csvIt:
@@ -574,194 +574,221 @@ class Model(QObject):
             fTimeSecs = 0.0
             previousDT = datetime.strptime('01/01/00', '%m/%d/%y')
 
-            while linenum < self.startLine:  # Move to start line,
-                with open(Path(self.fname) / '.txt', 'r') as logIn:
+            ## Open the file only once
+            with open(self.wdir / Path(self.fname + '.txt'), 'r') as logIn:
+                linenum = 1  # Start line number at 1
+
+                # Loop 1: Move to start line by reading and discarding lines
+                while linenum < self.startLine:
                     logLine = logIn.readline()
-                linenum += 1
-            while (
-                linenum < self.endLine
-            ):  # Then scan log by lines, finding time and date stamps,
-                #  and parse the other tags using parseLogEntries.
-                if self.printIt:
-                    print(linenum)  #   (enable to find bad point in log)
-                with open(Path(self.fname) / '.txt', 'r') as logIn:
+                    if not logLine:  # Check for end-of-file (shouldn't happen here if startLine is valid)
+                        print(
+                            f'Error: Reached end of file at line {linenum} before start line {self.startLine}'
+                        )
+                        return  # Or break, or handle the error
+                    linenum += 1
+
+                # Loop 2: Scan log lines from self.startLine up to (but not including) self.endLine
+                while linenum < self.endLine:
                     logLine = logIn.readline()
-                if logLine == '':
-                    break
-                linenum += 1
-                gotStamp = False
-                # Extract date and time stamps, combine.
-                tag = logLine[:2]
-                # gotBAD = False
 
-                if tag == 'DT':  # Update MM/DD/YY HH:MM:SS
-                    dateQ = logLine[3:6]
-                    if dateQ != 'BAD':
-                        date = logLine[3:11]
-                        # gotBAD = True
-                        # print('!')
-                    # else:  # unchanged from previous?  23 times out of 24...
-                    # date = logLine[3:8]     #BAD 1 or BAD 2
-                    time = logLine[12:17]
-                    # print (time)
+                    # Check for end-of-file *within* the desired scan range
+                    if not logLine:
+                        print(f'End of file reached at line {linenum}. Stopping scan.')
+                        break
 
-                    timeDT = datetime.strptime(time, '%H:%M')
-                    # print(timeDT.hour, timeDT.minute)
-                    dateDT = datetime.strptime(date, '%m/%d/%y')
-                    if timeDT.hour == 0:
-                        if dateDT.day == previousDT.day:
-                            # increment date by one day!
-                            dateDT += timedelta(days=1)
-                    if dateDT < previousDT:
-                        dateDT = previousDT  # REPLACE with later, previous date!
-                    # print(dateDT.month, dateDT.day , dateDT.year, timeDT.hour)
-                    day: int | None = None
-                    month: int | None = None
-                    year: int | None = None
-                    if (
-                        self.timeZoneOffset != 0
-                    ):  # Add time zone offset:  >REWRITE ALL TO USE DATETIME<
-                        hour = int(time[0:2]) + self.timeZoneOffset
-                        minute = int(time[3:5])
-                        day = int(date[3:5])
-                        month = int(date[0:2])
-                        year = int(date[6:8])
-                        if hour > 23:  # positive shift in date
-                            hour -= 24
-                            day += 1  # FAIL AT MONTH BOUNDARY!
-                        else:
-                            if hour < 0:  # negative shift in date
-                                hour += 24
-                                day -= 1  # FAIL AT MONTH BOUNDARY!
-                        time = f'{hour:02d}:{minute:02d}'  # re-form the time& date strings.
-                    if self.dateLineOffset != 0 or self.timeZoneOffset != 0:
-                        if day and month and year:
-                            day += self.dateLineOffset  # FAIL AT MONTH BOUNDARY!
-                            date = f'{month:02d}/{day:02d}/{year:02d}'
+                    # Your processing/debugging code
+                    if self.printIt:
+                        print(linenum)
 
-                    secs = logLine[18:23]
-                    if startDate == '':
-                        startDate = date
-                    endDate = date
-                    if time != '':
-                        newTime = True
-                        if startTime == '':
-                            startTime = time
-                            endTime = time
-                    if secs != '':
-                        lastSecs = secs
-                        if startSecs == '':
-                            startSecs = secs
-                            if (
-                                self.mute == 0
-                            ):  # This line isn't in the .csv file in any case:
-                                print('\nStart:', startDate, startTime, startSecs)
-                        endSecs = secs
-                        newSecs = True
-                    gotStamp = True  # This log line is a time stamp?
-                    previousDT = dateDT  # Remember properly sequential date
+                    # IMPORTANT: Only increment linenum *after* successfully reading a line
+                    linenum += 1
+                    gotStamp = False
+                    # Extract date and time stamps, combine.
+                    tag = logLine[:2]
+                    # gotBAD = False
 
-                # Update H:M  (always preceeds another log entry, which has seconds)
-                if tag == 'TI':
-                    time = logLine[3:8]
+                    if tag == 'DT':  # Update MM/DD/YY HH:MM:SS
+                        dateQ = logLine[3:6]
+                        if dateQ != 'BAD':
+                            date = logLine[3:11]
+                            # gotBAD = True
+                            # print('!')
+                        # else:  # unchanged from previous?  23 times out of 24...
+                        # date = logLine[3:8]     #BAD 1 or BAD 2
+                        time = logLine[12:17]
+                        # print (time)
 
-                    if self.timeZoneOffset != 0:  # Add time zone offset:
-                        hour = int(time[0:2]) + self.timeZoneOffset
-                        minute = int(time[3:5])
-                        # day = int(date[3:5])       #DATE HAS ALREADY BEEN ADJUSTED IN DT TAG PROCESS
-                        # month = int(date[0:2])
-                        # year = int(date[6:8])
-                        if hour > 23:  # positive shift in date
-                            hour -= 24
-                        #    day += 1    #FAIL AT MONTH BOUNDARY!
-                        # else:
-                        #    if hour<0:  #negative shift in date
-                        #        hour += 24
-                        #        day -= 1    #FAIL AT MONTH BOUNDARY!
-                        # date = f'{month:02d}/{day:02d}/{year:02d}'
-                        time = f'{hour:02d}:{minute:02d}'  # re-form the time string.
+                        timeDT = datetime.strptime(time, '%H:%M')
+                        # print(timeDT.hour, timeDT.minute)
+                        dateDT = datetime.strptime(date, '%m/%d/%y')
+                        if timeDT.hour == 0:
+                            if dateDT.day == previousDT.day:
+                                # increment date by one day!
+                                dateDT += timedelta(days=1)
+                        if dateDT < previousDT:
+                            dateDT = previousDT  # REPLACE with later, previous date!
+                        # print(dateDT.month, dateDT.day , dateDT.year, timeDT.hour)
+                        day: int | None = None
+                        month: int | None = None
+                        year: int | None = None
+                        if (
+                            self.timeZoneOffset != 0
+                        ):  # Add time zone offset:  >REWRITE ALL TO USE DATETIME<
+                            hour = int(time[0:2]) + self.timeZoneOffset
+                            minute = int(time[3:5])
+                            day = int(date[3:5])
+                            month = int(date[0:2])
+                            year = int(date[6:8])
+                            if hour > 23:  # positive shift in date
+                                hour -= 24
+                                day += 1  # FAIL AT MONTH BOUNDARY!
+                            else:
+                                if hour < 0:  # negative shift in date
+                                    hour += 24
+                                    day -= 1  # FAIL AT MONTH BOUNDARY!
+                            time = f'{hour:02d}:{minute:02d}'  # re-form the time& date strings.
+                        if self.dateLineOffset != 0 or self.timeZoneOffset != 0:
+                            if day and month and year:
+                                day += self.dateLineOffset  # FAIL AT MONTH BOUNDARY!
+                                date = f'{month:02d}/{day:02d}/{year:02d}'
 
-                    if (
-                        startTime == ''
-                    ):  # this may never happen... DT stamp comes first.
-                        startTime = time
-                    endTime = time
-                    gotStamp = True
-                    if time != lastTime:  # Detect changed time and print that.
-                        newTime = True
-                        lastTime = time
-                    newSecs = False
-
-                if gotStamp is False:  # Other log entries: Update :secs.hundredths
-                    numThings += 1
-                    secs = logLine[3:8]
-                    if secs != '':
-                        if secs != lastSecs:
+                        secs = logLine[18:23]
+                        if startDate == '':
+                            startDate = date
+                        endDate = date
+                        if time != '':
+                            newTime = True
+                            if startTime == '':
+                                startTime = time
+                                endTime = time
+                        if secs != '':
+                            lastSecs = secs
                             if startSecs == '':
                                 startSecs = secs
+                                if (
+                                    self.mute == 0
+                                ):  # This line isn't in the .csv file in any case:
+                                    print('\nStart:', startDate, startTime, startSecs)
                             endSecs = secs
-                        newSecs = True
-                        lastSecs = secs
-                    parseLogEntries(
-                        logLine
-                    )  # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                # Ok, did we get a time stamp or a parsable tag with something else?
-                if self.csvIt and date != '':
-                    # if time == '14:25': print(gotStamp,gotIt,txt,date,time,secs)
-                    if (gotStamp and newSecs) or (
-                        gotIt and txt != '' and newSecs
-                    ):  # blank txt is a flag to mute this log entry
-                        # Did we get a "BAD n" DateTime stamp?  Calculate the next hour and use that.
+                            newSecs = True
+                        gotStamp = True  # This log line is a time stamp?
+                        previousDT = dateDT  # Remember properly sequential date
 
-                        # Did we log an earlier date stamp after a later one?
-                        # if (int(date[6:8]==0)) or (int(date[0:2]==0)) or (int(date[3:5]==0)):
-                        #    print ('Ble?', date[6:8], date[0:2], date[3:5])
-                        # if (date!='') and (lastDate!=''):
-                        #    yearD  = int(date[6:8]) - int(lastDate[6:8])
-                        #    monthD = int(date[0:2]) - int(lastDate[0:2])
-                        #    dayD   = int(date[3:5]) - int(lastDate[3:5])
-                        #    if (yearD<0) or (yearD==0 and monthD<0) or (yearD==0 and monthD==0 and dayD<0):
-                        #         print ('Bleh! ', date, lastDate)
+                    # Update H:M  (always preceeds another log entry, which has seconds)
+                    if tag == 'TI':
+                        time = logLine[3:8]
 
-                        fTimeSecsPrev = fTimeSecs
-                        fSecs = float(secs)
-                        fMins = float(time[3:6])
-                        fHrs = float(time[0:2])
-                        fTimeSecs = fHrs * 3600 + fMins * 60 + fSecs
-                        # print (fSecs)
-                        if date == lastDateDup and (fTimeSecs - fTimeSecsPrev) > 0.02:
-                            # if date==lastDateDup and time==lastTimeDup and secs==lastSecsDup:
-                            if math.floor(fSecs * 100.0) != 0:
-                                fLeadingEdge = (math.floor(fSecs * 100.0) - 1.0) / 100.0
-                            else:
-                                fLeadingEdge = (math.floor(fSecs * 100.0)) / 100.0
+                        if self.timeZoneOffset != 0:  # Add time zone offset:
+                            hour = int(time[0:2]) + self.timeZoneOffset
+                            minute = int(time[3:5])
+                            # day = int(date[3:5])       #DATE HAS ALREADY BEEN ADJUSTED IN DT TAG PROCESS
+                            # month = int(date[0:2])
+                            # year = int(date[6:8])
+                            if hour > 23:  # positive shift in date
+                                hour -= 24
+                            #    day += 1    #FAIL AT MONTH BOUNDARY!
+                            # else:
+                            #    if hour<0:  #negative shift in date
+                            #        hour += 24
+                            #        day -= 1    #FAIL AT MONTH BOUNDARY!
+                            # date = f'{month:02d}/{day:02d}/{year:02d}'
+                            time = (
+                                f'{hour:02d}:{minute:02d}'  # re-form the time string.
+                            )
+
+                        if (
+                            startTime == ''
+                        ):  # this may never happen... DT stamp comes first.
+                            startTime = time
+                        endTime = time
+                        gotStamp = True
+                        if time != lastTime:  # Detect changed time and print that.
+                            newTime = True
+                            lastTime = time
+                        newSecs = False
+
+                    if gotStamp is False:  # Other log entries: Update :secs.hundredths
+                        numThings += 1
+                        secs = logLine[3:8]
+                        if secs != '':
+                            if secs != lastSecs:
+                                if startSecs == '':
+                                    startSecs = secs
+                                endSecs = secs
+                            newSecs = True
+                            lastSecs = secs
+                        parseLogEntries(
+                            logLine
+                        )  # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    # Ok, did we get a time stamp or a parsable tag with something else?
+                    if self.csvIt and date != '':
+                        # if time == '14:25': print(gotStamp,gotIt,txt,date,time,secs)
+                        if (gotStamp and newSecs) or (
+                            gotIt and txt != '' and newSecs
+                        ):  # blank txt is a flag to mute this log entry
+                            # Did we get a "BAD n" DateTime stamp?  Calculate the next hour and use that.
+
+                            # Did we log an earlier date stamp after a later one?
+                            # if (int(date[6:8]==0)) or (int(date[0:2]==0)) or (int(date[3:5]==0)):
+                            #    print ('Ble?', date[6:8], date[0:2], date[3:5])
+                            # if (date!='') and (lastDate!=''):
+                            #    yearD  = int(date[6:8]) - int(lastDate[6:8])
+                            #    monthD = int(date[0:2]) - int(lastDate[0:2])
+                            #    dayD   = int(date[3:5]) - int(lastDate[3:5])
+                            #    if (yearD<0) or (yearD==0 and monthD<0) or (yearD==0 and monthD==0 and dayD<0):
+                            #         print ('Bleh! ', date, lastDate)
+
+                            fTimeSecsPrev = fTimeSecs
+                            fSecs = float(secs)
+                            fMins = float(time[3:6])
+                            fHrs = float(time[0:2])
+                            fTimeSecs = fHrs * 3600 + fMins * 60 + fSecs
+                            # print (fSecs)
+                            if (
+                                date == lastDateDup
+                                and (fTimeSecs - fTimeSecsPrev) > 0.02
+                            ):
+                                # if date==lastDateDup and time==lastTimeDup and secs==lastSecsDup:
+                                if math.floor(fSecs * 100.0) != 0:
+                                    fLeadingEdge = (
+                                        math.floor(fSecs * 100.0) - 1.0
+                                    ) / 100.0
+                                else:
+                                    fLeadingEdge = (math.floor(fSecs * 100.0)) / 100.0
+                                with open(
+                                    self.wdir / Path(self.fname + '.csv'), 'a'
+                                ) as csvOut:
+                                    csvOut.write(
+                                        f'{date} {time}:{fLeadingEdge:05.2f},' + csvLine
+                                    )  # duplicate previous values
+                                extraLines += 1
+                            #    print ('!')
+                            csvLine = (
+                                f'{Pon},{PumpsHot},{ePumpSelection},{PumpsShutdown},'
+                            )
+                            csvLine += (
+                                f'{P1CurrentHigh},{P2CurrentHigh},{maxIp1},{maxIp2},'
+                            )
+                            csvLine += f'{fThrot:05.3f},{fInTemp:5.2f},{fOutTemp:5.2f},{fFlow:5.2f},'
+                            csvLine += f'{int(bIntOn)},{int(bRestart)},{int(bCold)},{int(bPowerdown)},{int(bLogClosed)},{int(bLeak)},'
+                            csvLine += f'{fMinFlow:4.2f},{iMaxTemp},{iDissWatts},{iCmds},{iQrys},{iTouches},{ps24V},{ps5V},{ps3p3V},{iCpuTemp},'
+                            csvLine += f'{iGlitch0},{iGlitch1},{iGlitch2},{bWDTreboot},{int(bMysteryRestart)}\n'
                             with open(
-                                self.wdir / Path(self.fname + '.csv'), 'w'
+                                self.wdir / Path(self.fname + '.csv'), 'a'
                             ) as csvOut:
-                                csvOut.write(
-                                    f'{date} {time}:{fLeadingEdge:05.2f},' + csvLine
-                                )  # duplicate previous values
-                            extraLines += 1
-                        #    print ('!')
-                        csvLine = f'{Pon},{PumpsHot},{ePumpSelection},{PumpsShutdown},'
-                        csvLine += f'{P1CurrentHigh},{P2CurrentHigh},{maxIp1},{maxIp2},'
-                        csvLine += f'{fThrot:05.3f},{fInTemp:5.2f},{fOutTemp:5.2f},{fFlow:5.2f},'
-                        csvLine += f'{int(bIntOn)},{int(bRestart)},{int(bCold)},{int(bPowerdown)},{int(bLogClosed)},{int(bLeak)},'
-                        csvLine += f'{fMinFlow:4.2f},{iMaxTemp},{iDissWatts},{iCmds},{iQrys},{iTouches},{ps24V},{ps5V},{ps3p3V},{iCpuTemp},'
-                        csvLine += f'{iGlitch0},{iGlitch1},{iGlitch2},{bWDTreboot},{int(bMysteryRestart)}\n'
-                        with open(self.wdir / Path(self.fname + '.csv'), 'w') as csvOut:
-                            csvOut.write(f'{date} {time}:{secs},' + csvLine)
-                        lastDateDup = date
-                        # lastTimeDup = time
-                        # lastSecsDup = secs
+                                csvOut.write(f'{date} {time}:{secs},' + csvLine)
+                            lastDateDup = date
+                            # lastTimeDup = time
+                            # lastSecsDup = secs
 
-                if date != lastDate:
-                    lastDate = date
-                    # newDate = True
-                if newSecs is True and newTime is True:
-                    newSecs = False
-                    newTime = False
-                    # newDate = False
+                    if date != lastDate:
+                        lastDate = date
+                        # newDate = True
+                    if newSecs is True and newTime is True:
+                        newSecs = False
+                        newTime = False
+                        # newDate = False
 
             # print / return limits.
             if endDate:  # This line isn't in the .csv file in any case:
