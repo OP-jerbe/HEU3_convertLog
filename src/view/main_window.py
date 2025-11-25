@@ -1,13 +1,17 @@
 from pathlib import Path
 
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
+    QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLineEdit,
     QMainWindow,
     QPushButton,
+    QSizePolicy,
+    QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
@@ -51,8 +55,8 @@ class MainWindow(QMainWindow):
         self.create_gui()
 
     def create_gui(self) -> None:
-        window_width = int(330)
-        window_height = int(200)
+        window_width = 330
+        window_height = 250
         self.setFixedSize(window_width, window_height)
         root_dir: Path = h.get_root_dir()
         icon_path: str = str(root_dir / 'assets' / 'icon.ico')
@@ -68,12 +72,21 @@ class MainWindow(QMainWindow):
         self.csvIt_cb = QCheckBox('Create CSV')
         self.csvIt_cb.setChecked(True)
         self.commandIt_pb = QPushButton('Pull Data Log')
+        self.convertLog_pb = QPushButton('Convert Log')
         self.SN_le = QLineEdit(placeholderText='Enter Serial Number')
         self.logNum_le = QLineEdit(placeholderText='Enter Log Number')
+
+        # Create a fixed-height vertical spacer (20 is minimum width, doesn't matter much here)
+        width = 20
+        height = 20
+        spacer = QSpacerItem(
+            width, height, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
+        )
 
         self.printIt_cb.clicked.connect(self.handle_printIt_clicked)
         self.csvIt_cb.clicked.connect(self.handle_csvIt_clicked)
         self.commandIt_pb.clicked.connect(self.handle_commandIt_clicked)
+        self.convertLog_pb.clicked.connect(self.handle_convertLog_clicked)
 
         le_layout = QHBoxLayout()
         le_layout.addWidget(self.SN_le)
@@ -83,10 +96,29 @@ class MainWindow(QMainWindow):
         cb_layout.addWidget(self.printIt_cb)
         cb_layout.addWidget(self.csvIt_cb)
 
+        group_box = QGroupBox()
+        group_box.setStyleSheet("""
+            QGroupBox::title {
+                color: transparent; /* Makes text invisible */
+                padding: 0px;       /* Removes space reserved for text */
+                padding-top: 0px;
+                height: 0px;
+                }
+            QGroupBox {
+                padding: 0px;
+                padding-top: 0px;        
+            }
+        """)
+        group_box_layout = QVBoxLayout()
+        group_box_layout.addLayout(cb_layout)
+        group_box_layout.addWidget(self.convertLog_pb)
+        group_box.setLayout(group_box_layout)
+
         main_layout = QVBoxLayout()
         main_layout.addLayout(le_layout)
-        main_layout.addLayout(cb_layout)
         main_layout.addWidget(self.commandIt_pb)
+        main_layout.addItem(spacer)
+        main_layout.addWidget(group_box)
 
         container = QWidget()
         container.setLayout(main_layout)
@@ -144,6 +176,9 @@ class MainWindow(QMainWindow):
 
     def handle_exit_triggered(self) -> None:
         self.close()
+
+    def handle_convertLog_clicked(self) -> None:
+        print('clicked')
 
     @Slot()
     def receive_connected_sig(self) -> None:
