@@ -769,9 +769,9 @@ class Model(QObject):
             print(linenum, 'lines +', extraLines, 'added')
 
             success = True
+
         except Exception as e:
             self.convertLog_failed_sig.emit(str(e))
-            raise Exception(str(e))
 
         finally:
             self.convertLog_worker_finished_sig.emit(success)
