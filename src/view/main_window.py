@@ -91,7 +91,6 @@ class MainWindow(QMainWindow):
         )
 
         self.printIt_cb.clicked.connect(self.handle_printIt_clicked)
-        self.csvIt_cb.clicked.connect(self.handle_csvIt_clicked)
         self.commandIt_pb.clicked.connect(self.handle_commandIt_clicked)
         self.convertLog_pb.clicked.connect(self.handle_convertLog_clicked)
 
@@ -158,12 +157,6 @@ class MainWindow(QMainWindow):
         else:
             self.printIt_sig.emit(False)
 
-    def handle_csvIt_clicked(self) -> None:
-        if self.csvIt_cb.isChecked():
-            self.printIt_sig.emit(True)
-        else:
-            self.printIt_sig.emit(False)
-
     def handle_commandIt_clicked(self) -> None:
         # Make sure the user has put text in for the serial and log numbers.
         if not self.SN_le.text() or not self.logNum_le.text():
@@ -192,6 +185,7 @@ class MainWindow(QMainWindow):
         self.convertLog_pb.setText('Converting Log...')
         self.SN_changed_sig.emit(self.SN_le.text())
         self.logNum_changed_sig.emit(self.logNum_le.text())
+        self.csvIt_sig.emit(self.csvIt_cb.isChecked())
         self.convertLog_sig.emit(self.printIt_cb.isChecked())
 
     @Slot()
