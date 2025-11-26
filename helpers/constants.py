@@ -1,5 +1,7 @@
-VERSION: str = '1.2.0'
+VERSION: str = '1.2.1'
+
 COM_PORT: str = 'COM9'
+
 LOG_VERSION: int = 2
 TIME_ZONE_OFFSET: int = 0
 DATE_LINE_OFFSET: int = 0
