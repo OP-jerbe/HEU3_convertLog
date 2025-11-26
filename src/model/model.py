@@ -542,7 +542,7 @@ class Model(QObject):
                     #    csvOut.write('')
                 # end parseLogEntries
 
-            if self.csvIt:
+            if self.csvIt:  # Open the csv file and write the headers
                 # Write the HEADER line with the column names         #248 characters!
                 with open(self.wdir / Path(self.fname + '.csv'), 'w') as csvOut:
                     csvOut.write('Time,')
@@ -596,10 +596,6 @@ class Model(QObject):
                     if not logLine:
                         print(f'End of file reached at line {linenum}. Stopping scan.')
                         break
-
-                    # Your processing/debugging code
-                    if self.printIt:
-                        print(linenum)
 
                     # IMPORTANT: Only increment linenum *after* successfully reading a line
                     linenum += 1
