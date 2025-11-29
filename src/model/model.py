@@ -35,19 +35,62 @@ class Model(QObject):
         self.logNum: str = ''  # QLineEdit in gui
         self.SN: str = ''  # QLineEdit or pull from the HEU (need HEU3 API)
         self.fname = f'sn{self.SN}log{self.logNum}'
-        self.wdir: Path = self._get_data_dir()  # menu option to set
+        self.wdir: Path = self._get_log_data_dir()  # location of HEU log text file
         self.printIt: bool = False  # QCheckbox in gui
         self.csvIt: bool = True  # QCheckbox in gui
         self.threadpool = QThreadPool()
 
         self.ser: Serial | None = None
+        self.logIn_txt: Path
+        self.output_dir: Path
+        self.output_txt: Path
+        self.output_csv: Path
 
         self.serial_connect(self.com_port)
 
     @staticmethod
-    def _get_data_dir() -> Path:
+    def _get_log_data_dir() -> Path:
         root_dir = h.get_root_dir()
         return Path(root_dir / 'log_data')
+
+    def _make_output_dir(self) -> None:
+        self.output_dir = self.logIn_txt.parent / Path(self.logIn_txt.stem + 'out')
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _make_output_files(self) -> None:
+        self.output_txt = self.output_dir / Path(self.logIn_txt.stem + 'out.txt')
+        self.output_csv = self.output_dir / Path(self.logIn_txt.stem + 'out.csv')
+        self.output_txt.touch()
+        self.output_csv.touch()
+
+    def serial_connect(self, com_port: str) -> None:
+        try:
+            self.ser = Serial(port=com_port, baudrate=38400, timeout=1)
+            self.connected_sig.emit()
+        except Exception as e:
+            self.ser = None
+            self.not_connected_sig.emit(str(e))
+
+    def change_wdir(self) -> None:
+        folder_path: str = h.select_folder()
+        if folder_path:
+            self.wdir = Path(folder_path)
+
+    def start_commandIt_worker(self) -> None:
+        self._make_output_dir()
+        self.worker = Worker(self._commandIt)
+        self.threadpool.start(self.worker)
+
+    def start_convertLog_worker(self) -> None:
+        self._make_output_dir()
+        self._make_output_files()
+        self.worker = Worker(
+            self._convertLog,
+            input_data=self.logIn_txt,
+            output_txt=self.output_txt,
+            output_csv=self.output_csv,
+        )
+        self.threadpool.start(self.worker)
 
     def _commandIt(self) -> None:
         success: bool = False
@@ -70,7 +113,7 @@ class Model(QObject):
                 if readstr == '>\n':
                     ambleState = 3  # postamble, first line
                 if ambleState == 2:  # guts, the rest
-                    with open(self.wdir / Path(self.fname + 'out.txt'), 'w') as logOut:
+                    with open(self.wdir / Path(self.fname + '.txt'), 'w') as logOut:
                         logOut.writelines(readstr)
                 if ambleState == 1:
                     ambleState += 1
@@ -84,7 +127,7 @@ class Model(QObject):
         finally:
             self.commandIt_worker_finished_sig.emit(success)
 
-    def _convertLog(self) -> None:
+    def _convertLog(self, input_data: Path, output_txt: Path, output_csv: Path) -> None:
         success: bool = False
         try:
             date = '<none>'  # Latest read
@@ -217,334 +260,299 @@ class Model(QObject):
                 txt = ''
                 fluidSpecificHeat = 1796.0
 
-                if (
-                    tag == 'PS'
-                ):  # Pump states.  Many combined things packed in 24b / 8 decimal digits.
-                    secs = logLine[3:8]
-                    gotIt = True
-                    pStates = int(logLine[9:18])  # number conversion
-                    #  unsigned combined = (unsigned)pumpsOn&0x1;            //bit0
-                    Pon = pStates & 0x1
-                    if Pon != lastPumpsOn:
-                        lastPumpsOn = Pon
-                        if Pon == 1:
-                            txt = 'Pumps On                   '
-                        else:
-                            txt = 'Pumps Off                  '
-                        if self.printIt:
-                            print(
-                                txt, f'{date} {time}:{secs}'
-                            )  # ...28 charactors allowed...
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                with open(output_txt, 'a') as logOut:
+                    if (
+                        tag == 'PS'
+                    ):  # Pump states.  Many combined things packed in 24b / 8 decimal digits.
+                        secs = logLine[3:8]
+                        gotIt = True
+                        pStates = int(logLine[9:18])  # number conversion
+                        #  unsigned combined = (unsigned)pumpsOn&0x1;            //bit0
+                        Pon = pStates & 0x1
+                        if Pon != lastPumpsOn:
+                            lastPumpsOn = Pon
+                            if Pon == 1:
+                                txt = 'Pumps On                   '
+                            else:
+                                txt = 'Pumps Off                  '
+                            if self.printIt:
+                                print(
+                                    txt, f'{date} {time}:{secs}'
+                                )  # ...28 charactors allowed...
                             logOut.write(txt + f' {date} {time}:{secs}\n')
-                    #  combined |= ((unsigned)pumpsHighTempShutdown&0x1)<<1; //bit1
-                    PumpsHot = (pStates >> 1) & 0x1
-                    if PumpsHot != lastPumpsHTshutdown:
-                        lastPumpsHTshutdown = PumpsHot
-                        if PumpsHot == 1:
-                            txt = 'PUMPS HOT, shut down!      '
-                        else:
-                            txt = 'Pumps not hot.             '
-                        if self.printIt:
-                            print(txt, f'{date} {time}:{secs}')
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                        #  combined |= ((unsigned)pumpsHighTempShutdown&0x1)<<1; //bit1
+                        PumpsHot = (pStates >> 1) & 0x1
+                        if PumpsHot != lastPumpsHTshutdown:
+                            lastPumpsHTshutdown = PumpsHot
+                            if PumpsHot == 1:
+                                txt = 'PUMPS HOT, shut down!      '
+                            else:
+                                txt = 'Pumps not hot.             '
+                            if self.printIt:
+                                print(txt, f'{date} {time}:{secs}')
                             logOut.write(txt + f' {date} {time}:{secs}\n')
-                    #  combined |= ((unsigned)pumpSelection&0x3)<<2;         //bit2, bit3
-                    ePumpSelection = (pStates >> 2) & 0x3
-                    if ePumpSelection != lastPumpSelection:
-                        lastPumpSelection = ePumpSelection
-                        if ePumpSelection == 0:
-                            txt = 'BOTH PUMPS DISABLED!?      '
-                        elif ePumpSelection == 1:
-                            txt = 'P.1 Enabled, P.2 DISABLED  '
-                        elif ePumpSelection == 2:
-                            txt = 'P.1 DISABLED, P.2 Enabled  '
-                        elif ePumpSelection == 3:
-                            txt = 'Both pumps enabled.        '
-                        if self.printIt:
-                            print(txt, f'{date} {time}:{secs}')
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                        #  combined |= ((unsigned)pumpSelection&0x3)<<2;         //bit2, bit3
+                        ePumpSelection = (pStates >> 2) & 0x3
+                        if ePumpSelection != lastPumpSelection:
+                            lastPumpSelection = ePumpSelection
+                            if ePumpSelection == 0:
+                                txt = 'BOTH PUMPS DISABLED!?      '
+                            elif ePumpSelection == 1:
+                                txt = 'P.1 Enabled, P.2 DISABLED  '
+                            elif ePumpSelection == 2:
+                                txt = 'P.1 DISABLED, P.2 Enabled  '
+                            elif ePumpSelection == 3:
+                                txt = 'Both pumps enabled.        '
+                            if self.printIt:
+                                print(txt, f'{date} {time}:{secs}')
                             logOut.write(txt + f' {date} {time}:{secs}\n')
-                    #  combined |= ((unsigned)pumpShutdownOverride&0x1)<<4;  //bit4
-                    PumpsShutdown = (pStates >> 4) & 0x1
-                    if PumpsShutdown != lastPumpsShutdown:
-                        lastPumpsShutdown = PumpsShutdown
-                        if PumpsShutdown == 1:
-                            txt = 'Pumps shutting down        '
-                        else:
-                            txt = 'Pumps running              '
-                        if self.printIt:
-                            print(txt, f'{date} {time}:{secs}')
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                        #  combined |= ((unsigned)pumpShutdownOverride&0x1)<<4;  //bit4
+                        PumpsShutdown = (pStates >> 4) & 0x1
+                        if PumpsShutdown != lastPumpsShutdown:
+                            lastPumpsShutdown = PumpsShutdown
+                            if PumpsShutdown == 1:
+                                txt = 'Pumps shutting down        '
+                            else:
+                                txt = 'Pumps running              '
+                            if self.printIt:
+                                print(txt, f'{date} {time}:{secs}')
                             logOut.write(txt + f' {date} {time}:{secs}\n')
-                    #  combined |= ((unsigned)p1CurrentHigh&0x1)<<5;         //bit5
-                    P1CurrentHigh = (pStates >> 5) & 0x1
-                    if P1CurrentHigh != lastP1CurrentHigh:
-                        lastP1CurrentHigh = P1CurrentHigh
-                        if P1CurrentHigh == 1:
-                            txt = 'Pump 1 CURRENT HIGH        '
-                        else:
-                            txt = 'Pump 1 current normal.     '
-                        if self.printIt:
-                            print(txt, f'{date} {time}:{secs}')
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                        #  combined |= ((unsigned)p1CurrentHigh&0x1)<<5;         //bit5
+                        P1CurrentHigh = (pStates >> 5) & 0x1
+                        if P1CurrentHigh != lastP1CurrentHigh:
+                            lastP1CurrentHigh = P1CurrentHigh
+                            if P1CurrentHigh == 1:
+                                txt = 'Pump 1 CURRENT HIGH        '
+                            else:
+                                txt = 'Pump 1 current normal.     '
+                            if self.printIt:
+                                print(txt, f'{date} {time}:{secs}')
                             logOut.write(txt + f' {date} {time}:{secs}\n')
-                    #  combined |= ((unsigned)p2CurrentHigh&0x1)<<6;         //bit6
-                    P2CurrentHigh = (pStates >> 6) & 0x1
-                    if P2CurrentHigh != lastP2CurrentHigh:
-                        lastP2CurrentHigh = P2CurrentHigh
-                        if P2CurrentHigh == 1:
-                            txt = 'Pump 2 CURRENT HIGH        '
-                        else:
-                            txt = 'Pump 2 current normal.     '
-                        if self.printIt:
-                            print(txt, f'{date} {time}:{secs}')
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                        #  combined |= ((unsigned)p2CurrentHigh&0x1)<<6;         //bit6
+                        P2CurrentHigh = (pStates >> 6) & 0x1
+                        if P2CurrentHigh != lastP2CurrentHigh:
+                            lastP2CurrentHigh = P2CurrentHigh
+                            if P2CurrentHigh == 1:
+                                txt = 'Pump 2 CURRENT HIGH        '
+                            else:
+                                txt = 'Pump 2 current normal.     '
+                            if self.printIt:
+                                print(txt, f'{date} {time}:{secs}')
                             logOut.write(txt + f' {date} {time}:{secs}\n')
-                    #  combined |= ((unsigned)maxIp1<<7);                    //bits 7-14
-                    maxIp1 = float((pStates >> 7) & 0xFF) / 10.0
-                    if maxIp1 != lastMaxIp1:
-                        lastMaxIp1 = maxIp1
-                        if self.printIt:
-                            print(
-                                f'Max pump 1 current {maxIp1:4.1f} A   {date} {time}{secs}'
-                            )
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                        #  combined |= ((unsigned)maxIp1<<7);                    //bits 7-14
+                        maxIp1 = float((pStates >> 7) & 0xFF) / 10.0
+                        if maxIp1 != lastMaxIp1:
+                            lastMaxIp1 = maxIp1
+                            if self.printIt:
+                                print(
+                                    f'Max pump 1 current {maxIp1:4.1f} A   {date} {time}{secs}'
+                                )
                             logOut.write(
                                 f'Max pump 1 current {maxIp1:4.1f} A   {date} {time}:{secs}\n'
                             )
-                    #  combined |= ((unsigned)maxIp2<<15);                   //bits 15-22
-                    maxIp2 = float((pStates >> 15) & 0xFF) / 10.0
-                    if maxIp2 != lastMaxIp2:
-                        lastMaxIp2 = maxIp2
-                        if self.printIt:
-                            print(
-                                f'Max pump 2 current {maxIp2:4.1f} A   {date} {time}{secs}'
-                            )
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                        #  combined |= ((unsigned)maxIp2<<15);                   //bits 15-22
+                        maxIp2 = float((pStates >> 15) & 0xFF) / 10.0
+                        if maxIp2 != lastMaxIp2:
+                            lastMaxIp2 = maxIp2
+                            if self.printIt:
+                                print(
+                                    f'Max pump 2 current {maxIp2:4.1f} A   {date} {time}{secs}'
+                                )
                             logOut.write(
                                 f'Max pump 2 current {maxIp2:4.1f} A   {date} {time}:{secs}\n'
                             )
-                    # txt = f'(PS:{pStates:8d})              '
-                    txt = ''
-                    # bits 23-25 SPARE in 8 digits
-                    ### end tag=='PS' #####################################################################################
-                if tag == 'TH':  # Pump Throttle change.
-                    gotIt = True
-                    throt = logLine[9:15]
-                    fThrot = float(throt)
-                    txt = f'Throttle: {fThrot:5.3f}            '
-                if tag == 'TM':  # Temperature(s) changed.
-                    gotIt = True
-                    if self.logVersion == 1:
-                        inTemp = logLine[9:13]
-                        outTemp = logLine[13:18]
-                        fInTemp = float(inTemp)
-                        fOutTemp = float(outTemp)
-                        txt = f'Inlet:{fInTemp:4.1f} C, Outlet:{fOutTemp:4.1f} C'
-                    else:
-                        inTemp = logLine[9:14]
-                        outTemp = logLine[14:20]
-                        fInTemp = float(inTemp)
-                        fOutTemp = float(outTemp)
-                        txt = f'Inlet:{fInTemp:5.2f}C, Outlet:{fOutTemp:5.2f}C'
-                    iDissWatts = int(
-                        fFlow / 60.0 * (fInTemp - fOutTemp) * fluidSpecificHeat
-                    )
-                    if self.mute == 1:
+                        # txt = f'(PS:{pStates:8d})              '
                         txt = ''
-                if tag == 'FL':  # Flow rate changed.
-                    gotIt = True
-                    flow = logLine[9:14]
-                    fFlow = float(flow)
-                    txt = f'Flow rate: {fFlow:5.2f} l/min     '
-                    iDissWatts = int(
-                        fFlow / 60.0 * (fInTemp - fOutTemp) * fluidSpecificHeat
-                    )
-                    if self.mute == 1:
-                        txt = ''
-                if tag == 'PR':  # Print of log.
-                    gotIt = True
-                    txt = 'Log File Read              '
-                if tag == 'IN':  # Interlock On/Off.
-                    gotIt = True
-                    intOn = logLine[9:10]
-                    bIntOn = bool(int(intOn))
-                    if bIntOn:
-                        txt = 'Interlock On               '
-                    else:
-                        txt = 'Interlock Off              '
-                bRestart = False  # bRestart is only true for one tag's duration.
-                bCold = False  # bCold is only true for one tag's duration.
-                if tag == 'RE':  # Restart
-                    bRestart = True
-                    if linenum != 0:  # not a blank log prior to this
-                        bMysteryRestart = (
-                            bPowerdown is False
-                        )  # We should have had a logged shutdown before this.  Why?  WDT?
-                    bWDTreboot = (
-                        0  # Will be set with another tag soon if it is a WDT reboot.
-                    )
-                    gotIt = True
-                    cold = logLine[9:10]
-                    if cold == 'C':
-                        bCold = True
-                        txt = '\nCOLD RESTART               '  # From power-down or hard reset.
-                    else:
-                        txt = '\nWARM RESTART               '  # From brownout.
-                    lastPumpsOn = -1
-                    lastPumpsHTshutdown = -1
-                    lastPumpSelection = -1
-                    lastPumpsShutdown = -1
-                    lastP1CurrentHigh = -1.0
-                    lastP2CurrentHigh = -1.0
-                    lastMaxIp1 = -1.0
-                    lastMaxIp2 = -1.0
+                        # bits 23-25 SPARE in 8 digits
+                        ### end tag=='PS' #####################################################################################
+                    if tag == 'TH':  # Pump Throttle change.
+                        gotIt = True
+                        throt = logLine[9:15]
+                        fThrot = float(throt)
+                        txt = f'Throttle: {fThrot:5.3f}            '
+                    if tag == 'TM':  # Temperature(s) changed.
+                        gotIt = True
+                        if self.logVersion == 1:
+                            inTemp = logLine[9:13]
+                            outTemp = logLine[13:18]
+                            fInTemp = float(inTemp)
+                            fOutTemp = float(outTemp)
+                            txt = f'Inlet:{fInTemp:4.1f} C, Outlet:{fOutTemp:4.1f} C'
+                        else:
+                            inTemp = logLine[9:14]
+                            outTemp = logLine[14:20]
+                            fInTemp = float(inTemp)
+                            fOutTemp = float(outTemp)
+                            txt = f'Inlet:{fInTemp:5.2f}C, Outlet:{fOutTemp:5.2f}C'
+                        iDissWatts = int(
+                            fFlow / 60.0 * (fInTemp - fOutTemp) * fluidSpecificHeat
+                        )
+                        if self.mute == 1:
+                            txt = ''
+                    if tag == 'FL':  # Flow rate changed.
+                        gotIt = True
+                        flow = logLine[9:14]
+                        fFlow = float(flow)
+                        txt = f'Flow rate: {fFlow:5.2f} l/min     '
+                        iDissWatts = int(
+                            fFlow / 60.0 * (fInTemp - fOutTemp) * fluidSpecificHeat
+                        )
+                        if self.mute == 1:
+                            txt = ''
+                    if tag == 'PR':  # Print of log.
+                        gotIt = True
+                        txt = 'Log File Read              '
+                    if tag == 'IN':  # Interlock On/Off.
+                        gotIt = True
+                        intOn = logLine[9:10]
+                        bIntOn = bool(int(intOn))
+                        if bIntOn:
+                            txt = 'Interlock On               '
+                        else:
+                            txt = 'Interlock Off              '
+                    bRestart = False  # bRestart is only true for one tag's duration.
+                    bCold = False  # bCold is only true for one tag's duration.
+                    if tag == 'RE':  # Restart
+                        bRestart = True
+                        if linenum != 0:  # not a blank log prior to this
+                            bMysteryRestart = (
+                                bPowerdown is False
+                            )  # We should have had a logged shutdown before this.  Why?  WDT?
+                        bWDTreboot = 0  # Will be set with another tag soon if it is a WDT reboot.
+                        gotIt = True
+                        cold = logLine[9:10]
+                        if cold == 'C':
+                            bCold = True
+                            txt = '\nCOLD RESTART               '  # From power-down or hard reset.
+                        else:
+                            txt = '\nWARM RESTART               '  # From brownout.
+                        lastPumpsOn = -1
+                        lastPumpsHTshutdown = -1
+                        lastPumpSelection = -1
+                        lastPumpsShutdown = -1
+                        lastP1CurrentHigh = -1.0
+                        lastP2CurrentHigh = -1.0
+                        lastMaxIp1 = -1.0
+                        lastMaxIp2 = -1.0
 
-                bPowerdown = False
-                if tag == 'PD':  # Power going down (voltage<min).
-                    bPowerdown = True
-                    gotIt = True
-                    txt = 'POWER GOING DOWN           '
-                bLogClosed = False  # Log bool is only true for one tag's duration.
-                if tag == 'CL':  # Close of log.
-                    bLogClosed = True
-                    bPowerdown = (
-                        True  # COULD BE A SOFTWARE RELOAD WITH "RELOD" COMMAND, NOTE?
-                    )
-                    gotIt = True
-                    txt = 'LOG CLOSED.                '
-                if tag == 'LE':  # Leak detected?
-                    gotIt = True
-                    leak = logLine[9:10]
-                    bLeak = bool(int(leak))
-                    if bLeak:
-                        txt = 'LEAK detected              '
-                    else:
-                        txt = 'No leak                    '
-                if tag == 'MF':  # Minimum (interlock) flow rate setting
-                    gotIt = True
-                    minFlow = logLine[9:14]
-                    fMinFlow = float(minFlow)
-                    txt = f'Min flow lim set:{fMinFlow:5.2f} l/m '
-                if tag == 'MT':  # Minimum (interlock) temp rate setting
-                    gotIt = True
-                    maxTemp = logLine[9:11]
-                    iMaxTemp = int(maxTemp)
-                    txt = f'Max temp limit set:{iMaxTemp:2d} C    '
-                if tag == 'VE':  # Version numbers
-                    gotIt = True
-                    th = logLine[9:11]
-                    ts = logLine[12:14]
-                    txt = f'Hardware V{th}, Software V{ts} '  # NOTE: does not sucessfuly produce ints, just strings.
-                    # txt = f'Hardware V{hV:2d}, Software V{sV:2d} '
-                    # Now determine and print if the unit rebooted without a shutdown or WDT reboot message:
-                    if bMysteryRestart:  # Restart without reason!
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                    bPowerdown = False
+                    if tag == 'PD':  # Power going down (voltage<min).
+                        bPowerdown = True
+                        gotIt = True
+                        txt = 'POWER GOING DOWN           '
+                    bLogClosed = False  # Log bool is only true for one tag's duration.
+                    if tag == 'CL':  # Close of log.
+                        bLogClosed = True
+                        bPowerdown = True  # COULD BE A SOFTWARE RELOAD WITH "RELOD" COMMAND, NOTE?
+                        gotIt = True
+                        txt = 'LOG CLOSED.                '
+                    if tag == 'LE':  # Leak detected?
+                        gotIt = True
+                        leak = logLine[9:10]
+                        bLeak = bool(int(leak))
+                        if bLeak:
+                            txt = 'LEAK detected              '
+                        else:
+                            txt = 'No leak                    '
+                    if tag == 'MF':  # Minimum (interlock) flow rate setting
+                        gotIt = True
+                        minFlow = logLine[9:14]
+                        fMinFlow = float(minFlow)
+                        txt = f'Min flow lim set:{fMinFlow:5.2f} l/m '
+                    if tag == 'MT':  # Minimum (interlock) temp rate setting
+                        gotIt = True
+                        maxTemp = logLine[9:11]
+                        iMaxTemp = int(maxTemp)
+                        txt = f'Max temp limit set:{iMaxTemp:2d} C    '
+                    if tag == 'VE':  # Version numbers
+                        gotIt = True
+                        th = logLine[9:11]
+                        ts = logLine[12:14]
+                        txt = f'Hardware V{th}, Software V{ts} '  # NOTE: does not sucessfuly produce ints, just strings.
+                        # txt = f'Hardware V{hV:2d}, Software V{sV:2d} '
+                        # Now determine and print if the unit rebooted without a shutdown or WDT reboot message:
+                        if bMysteryRestart:  # Restart without reason!
                             logOut.write(
                                 f'Restart without Shutdown!   {date} {time}:{secs}\n'
                             )  # Extra log entry
-                if tag == 'DW':  # Dissipated Power, Watts.
-                    gotIt = True
-                    # dWatts = logLine[9:13]
-                    # iDissWatts = int(dWatts)   #logged power, but ignore it as it's behind the values it's created from,
-                    # and just adds double entries.
-                    # iDissWatts = int(fFlow/60.*(fInTemp-fOutTemp)*fluidSpecificHeat)
-                    # txt = f'Dissipated Power:{iDissWatts:4d} W    '
-                    txt = ''  # kill this anyway, it's a duplicate.
-                if (
-                    tag == 'IF'
-                ):  # New valid commands and queries received over the HEU interface(s)
-                    gotIt = True
-                    cmds = logLine[9:20]
-                    iCmds += int(cmds)
-                    qrys = logLine[20:31]
-                    iQrys += int(qrys)
-                    txt = f'Cmds:{iCmds:11d} Qrys:{iQrys:11d}'
-                    # txt = '' #IGNORE
-                if tag == 'TU':  # New screen touches
-                    gotIt = True
-                    touches = logLine[9:20]
-                    iTouches += int(touches)
-                    txt = f'Touches:{iTouches:11d}'
-                if tag == 'SV':  # (power) Supply Voltages.
-                    gotIt = True
-                    ps24V = logLine[9:14]  # 5 of 5 chars
-                    ps5V = logLine[16:20]  # 4 of 5 chars
-                    ps3p3V = logLine[22:26]  # 4 of 5 chars
-                    # fPs24V = float(ps24V)
-                    # fPs5V  = float(ps5V)
-                    # fPs3p3V = float(ps3p3V)
-                    txt = '24V:' + ps24V + ' 5V:' + ps5V + ' 3.3V:' + ps3p3V
-                if tag == 'CT':  # CPU temperature
-                    gotIt = True
-                    cpuTemp = logLine[9:13]
-                    iCpuTemp = float(cpuTemp)
-                    txt = f'CPU temperature: {iCpuTemp:4.1f} C    '
-                # "DB:%05.2f %03d %03d %03d\n", secondz(), fmGlitches0%1000,fmGlitches1%1000,fmGlitches2%1000);
-                if (
-                    tag == 'DB'
-                ):  # Debug print: three counters, 000-999, or any three charactor strings
-                    gotIt = True
-                    # print (logLine)
-                    glitch0 = logLine[9:12]  # 000 000 000\n
-                    glitch1 = logLine[13:16]
-                    glitch2 = logLine[17:20]
-                    iGlitch0 = int(glitch0)
-                    iGlitch1 = int(glitch1)
-                    iGlitch2 = int(glitch2)
-                    txt = (
-                        f'Debug 0:{iGlitch0:03d} 1:{iGlitch1:03d} 2:{iGlitch2:03d}    '
-                    )
-                    # txt = 'Debug 0:'+glitch0+'  1:'+glitch1+'  2:'+glitch2+'  '
-                    # txt = ''
-                if tag == 'WD':  # WDT reboot: type?
-                    # "WD:%05.2f %1d %1d\n", secondz(), rebootMarker, dog3.expired());
-                    gotIt = True
-                    rbtMarker = logLine[9:11]
-                    dogExpired = logLine[11:12]
-                    # txt = f'WDT reboot: {rbtMarker:1d} {dogExpired:1d} '
-                    txt = 'WDT reboot:' + rbtMarker + dogExpired
-                    bWDTreboot = 1
-                    bMysteryRestart = False  # Aah.  That's why.
-                # Now print that        :
-                if gotIt is False and logLine != '\n' and logLine != '':
-                    txt = f'Unrecognizable tag: {logLine}'
-                    if self.printIt:  # Comment out for verbose run
-                        print(f'Line {linenum} ' + txt)
-                else:
-                    if (self.mute == 0) & (txt != ''):
-                        if self.printIt:
-                            print(txt, f'{date} {time}{lastSecs}')
-                        with open(
-                            self.wdir / Path(self.fname + 'out.txt'), 'a'
-                        ) as logOut:
+                    if tag == 'DW':  # Dissipated Power, Watts.
+                        gotIt = True
+                        # dWatts = logLine[9:13]
+                        # iDissWatts = int(dWatts)   #logged power, but ignore it as it's behind the values it's created from,
+                        # and just adds double entries.
+                        # iDissWatts = int(fFlow/60.*(fInTemp-fOutTemp)*fluidSpecificHeat)
+                        # txt = f'Dissipated Power:{iDissWatts:4d} W    '
+                        txt = ''  # kill this anyway, it's a duplicate.
+                    if (
+                        tag == 'IF'
+                    ):  # New valid commands and queries received over the HEU interface(s)
+                        gotIt = True
+                        cmds = logLine[9:20]
+                        iCmds += int(cmds)
+                        qrys = logLine[20:31]
+                        iQrys += int(qrys)
+                        txt = f'Cmds:{iCmds:11d} Qrys:{iQrys:11d}'
+                        # txt = '' #IGNORE
+                    if tag == 'TU':  # New screen touches
+                        gotIt = True
+                        touches = logLine[9:20]
+                        iTouches += int(touches)
+                        txt = f'Touches:{iTouches:11d}'
+                    if tag == 'SV':  # (power) Supply Voltages.
+                        gotIt = True
+                        ps24V = logLine[9:14]  # 5 of 5 chars
+                        ps5V = logLine[16:20]  # 4 of 5 chars
+                        ps3p3V = logLine[22:26]  # 4 of 5 chars
+                        # fPs24V = float(ps24V)
+                        # fPs5V  = float(ps5V)
+                        # fPs3p3V = float(ps3p3V)
+                        txt = '24V:' + ps24V + ' 5V:' + ps5V + ' 3.3V:' + ps3p3V
+                    if tag == 'CT':  # CPU temperature
+                        gotIt = True
+                        cpuTemp = logLine[9:13]
+                        iCpuTemp = float(cpuTemp)
+                        txt = f'CPU temperature: {iCpuTemp:4.1f} C    '
+                    # "DB:%05.2f %03d %03d %03d\n", secondz(), fmGlitches0%1000,fmGlitches1%1000,fmGlitches2%1000);
+                    if (
+                        tag == 'DB'
+                    ):  # Debug print: three counters, 000-999, or any three charactor strings
+                        gotIt = True
+                        # print (logLine)
+                        glitch0 = logLine[9:12]  # 000 000 000\n
+                        glitch1 = logLine[13:16]
+                        glitch2 = logLine[17:20]
+                        iGlitch0 = int(glitch0)
+                        iGlitch1 = int(glitch1)
+                        iGlitch2 = int(glitch2)
+                        txt = f'Debug 0:{iGlitch0:03d} 1:{iGlitch1:03d} 2:{iGlitch2:03d}    '
+                        # txt = 'Debug 0:'+glitch0+'  1:'+glitch1+'  2:'+glitch2+'  '
+                        # txt = ''
+                    if tag == 'WD':  # WDT reboot: type?
+                        # "WD:%05.2f %1d %1d\n", secondz(), rebootMarker, dog3.expired());
+                        gotIt = True
+                        rbtMarker = logLine[9:11]
+                        dogExpired = logLine[11:12]
+                        # txt = f'WDT reboot: {rbtMarker:1d} {dogExpired:1d} '
+                        txt = 'WDT reboot:' + rbtMarker + dogExpired
+                        bWDTreboot = 1
+                        bMysteryRestart = False  # Aah.  That's why.
+                    # Now print that        :
+                    if gotIt is False and logLine != '\n' and logLine != '':
+                        txt = f'Unrecognizable tag: {logLine}'
+                        if self.printIt:  # Comment out for verbose run
+                            print(f'Line {linenum} ' + txt)
+                    else:
+                        if (self.mute == 0) & (txt != ''):
+                            if self.printIt:
+                                print(txt, f'{date} {time}{lastSecs}')
                             logOut.write(txt + f' {date} {time}:{secs}\n')
-                    # if csvIt:
-                    #    csvOut.write('')
-                # end parseLogEntries
+                        # if csvIt:
+                        #    csvOut.write('')
+                    # end parseLogEntries
 
             if self.csvIt:  # Open the csv file and write the headers
                 # Write the HEADER line with the column names         #248 characters!
-                with open(self.wdir / Path(self.fname + '.csv'), 'w') as csvOut:
+                with open(output_csv, 'w') as csvOut:
                     csvOut.write('Time,')
                     csvOut.write(
                         'Pon,PumpsHot,ePumpSelection,PumpsShutdown,P1CurrentHigh,P2CurrentHigh,maxIp1,maxIp2,'
@@ -575,7 +583,7 @@ class Model(QObject):
             previousDT = datetime.strptime('01/01/00', '%m/%d/%y')
 
             ## Open the file only once
-            with open(self.wdir / Path(self.fname + '.txt'), 'r') as logIn:
+            with open(input_data, 'r') as logIn:
                 linenum = 1  # Start line number at 1
 
                 # Loop 1: Move to start line by reading and discarding lines
@@ -741,42 +749,35 @@ class Model(QObject):
                             fHrs = float(time[0:2])
                             fTimeSecs = fHrs * 3600 + fMins * 60 + fSecs
                             # print (fSecs)
-                            if (
-                                date == lastDateDup
-                                and (fTimeSecs - fTimeSecsPrev) > 0.02
-                            ):
-                                # if date==lastDateDup and time==lastTimeDup and secs==lastSecsDup:
-                                if math.floor(fSecs * 100.0) != 0:
-                                    fLeadingEdge = (
-                                        math.floor(fSecs * 100.0) - 1.0
-                                    ) / 100.0
-                                else:
-                                    fLeadingEdge = (math.floor(fSecs * 100.0)) / 100.0
-                                with open(
-                                    self.wdir / Path(self.fname + '.csv'), 'a'
-                                ) as csvOut:
+                            with open(output_csv, 'a') as csvOut:
+                                if (
+                                    date == lastDateDup
+                                    and (fTimeSecs - fTimeSecsPrev) > 0.02
+                                ):
+                                    # if date==lastDateDup and time==lastTimeDup and secs==lastSecsDup:
+                                    if math.floor(fSecs * 100.0) != 0:
+                                        fLeadingEdge = (
+                                            math.floor(fSecs * 100.0) - 1.0
+                                        ) / 100.0
+                                    else:
+                                        fLeadingEdge = (
+                                            math.floor(fSecs * 100.0)
+                                        ) / 100.0
                                     csvOut.write(
                                         f'{date} {time}:{fLeadingEdge:05.2f},' + csvLine
                                     )  # duplicate previous values
-                                extraLines += 1
-                            #    print ('!')
-                            csvLine = (
-                                f'{Pon},{PumpsHot},{ePumpSelection},{PumpsShutdown},'
-                            )
-                            csvLine += (
-                                f'{P1CurrentHigh},{P2CurrentHigh},{maxIp1},{maxIp2},'
-                            )
-                            csvLine += f'{fThrot:05.3f},{fInTemp:5.2f},{fOutTemp:5.2f},{fFlow:5.2f},'
-                            csvLine += f'{int(bIntOn)},{int(bRestart)},{int(bCold)},{int(bPowerdown)},{int(bLogClosed)},{int(bLeak)},'
-                            csvLine += f'{fMinFlow:4.2f},{iMaxTemp},{iDissWatts},{iCmds},{iQrys},{iTouches},{ps24V},{ps5V},{ps3p3V},{iCpuTemp},'
-                            csvLine += f'{iGlitch0},{iGlitch1},{iGlitch2},{bWDTreboot},{int(bMysteryRestart)}\n'
-                            with open(
-                                self.wdir / Path(self.fname + '.csv'), 'a'
-                            ) as csvOut:
+                                    extraLines += 1
+                                #    print ('!')
+                                csvLine = f'{Pon},{PumpsHot},{ePumpSelection},{PumpsShutdown},'
+                                csvLine += f'{P1CurrentHigh},{P2CurrentHigh},{maxIp1},{maxIp2},'
+                                csvLine += f'{fThrot:05.3f},{fInTemp:5.2f},{fOutTemp:5.2f},{fFlow:5.2f},'
+                                csvLine += f'{int(bIntOn)},{int(bRestart)},{int(bCold)},{int(bPowerdown)},{int(bLogClosed)},{int(bLeak)},'
+                                csvLine += f'{fMinFlow:4.2f},{iMaxTemp},{iDissWatts},{iCmds},{iQrys},{iTouches},{ps24V},{ps5V},{ps3p3V},{iCpuTemp},'
+                                csvLine += f'{iGlitch0},{iGlitch1},{iGlitch2},{bWDTreboot},{int(bMysteryRestart)}\n'
                                 csvOut.write(f'{date} {time}:{secs},' + csvLine)
-                            lastDateDup = date
-                            # lastTimeDup = time
-                            # lastSecsDup = secs
+                                lastDateDup = date
+                                # lastTimeDup = time
+                                # lastSecsDup = secs
 
                     if date != lastDate:
                         lastDate = date
@@ -798,24 +799,3 @@ class Model(QObject):
 
         finally:
             self.convertLog_worker_finished_sig.emit(success)
-
-    def serial_connect(self, com_port: str) -> None:
-        try:
-            self.ser = Serial(port=com_port, baudrate=38400, timeout=1)
-            self.connected_sig.emit()
-        except Exception as e:
-            self.ser = None
-            self.not_connected_sig.emit(str(e))
-
-    def change_save_dir(self) -> None:
-        folder_path: str = h.get_folder_path()
-        if folder_path:
-            self.wdir = Path(folder_path)
-
-    def start_commandIt_worker(self) -> None:
-        self.worker = Worker(self._commandIt)
-        self.threadpool.start(self.worker)
-
-    def start_convertLog_worker(self) -> None:
-        self.worker = Worker(self._convertLog)
-        self.threadpool.start(self.worker)

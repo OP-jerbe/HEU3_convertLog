@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtCore import QObject, Slot
 
 import helpers.helpers as h
@@ -20,10 +22,11 @@ class Controller(QObject):
         self.view.csvIt_sig.connect(self.receive_csvIt_sig)
         self.view.commandIt_sig.connect(self.receive_commandIt_sig)
         self.view.convertLog_sig.connect(self.receive_convertLog_sig)
-        self.view.SN_changed_sig.connect(self.receive_SN_changed_sig)
-        self.view.logNum_changed_sig.connect(self.receive_logNum_changed_sig)
-        self.view.change_save_dir_sig.connect(self.receive_change_save_dir_sig)
+        self.view.SN_sig.connect(self.receive_SN_sig)
+        self.view.logNum_sig.connect(self.receive_logNum_sig)
+        self.view.change_wdir_sig.connect(self.receive_change_wdir_sig)
         self.view.connection_window.CWconnect_sig.connect(self.receive_CWconnect_sig)
+        self.view.file_path_sig.connect(self.receive_file_path_sig)
 
     @Slot(bool)
     def receive_printIt_sig(self, signal: bool) -> None:
@@ -37,25 +40,30 @@ class Controller(QObject):
     def receive_commandIt_sig(self) -> None:
         self.model.start_commandIt_worker()
 
+    @Slot(str)
+    def receive_file_path_sig(self, file_path: str) -> None:
+        print(file_path)
+        self.model.logIn_txt = Path(file_path)
+
     @Slot(bool)
-    def receive_convertLog_sig(self, signal: bool) -> None:
-        if signal:
+    def receive_convertLog_sig(self, printIt: bool) -> None:
+        if printIt:
             h.open_console()
         self.model.start_convertLog_worker()
 
     @Slot(str)
-    def receive_SN_changed_sig(self, serial_number: str) -> None:
+    def receive_SN_sig(self, serial_number: str) -> None:
         self.model.SN = serial_number
         self.model.fname = f'sn{serial_number}log{self.model.logNum}'
 
     @Slot(str)
-    def receive_logNum_changed_sig(self, log_number: str) -> None:
+    def receive_logNum_sig(self, log_number: str) -> None:
         self.model.logNum = log_number
         self.model.fname = f'sn{self.model.SN}log{log_number}'
 
     @Slot()
-    def receive_change_save_dir_sig(self) -> None:
-        self.model.change_save_dir()
+    def receive_change_wdir_sig(self) -> None:
+        self.model.change_wdir()
 
     @Slot(str)
     def receive_CWconnect_sig(self, com_port: str) -> None:

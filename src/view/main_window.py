@@ -177,15 +177,14 @@ class MainWindow(QMainWindow):
         self.close()
 
     def handle_convertLog_clicked(self) -> None:
-        if not self.SN_le.text() or not self.logNum_le.text():
-            popup.missing_SN_logNum_mb(self)  # error message box
-            return
         self.convertLog_pb.setEnabled(False)
-        self.convertLog_pb.setText('Converting Log...')
-        self.SN_changed_sig.emit(self.SN_le.text())
-        self.logNum_changed_sig.emit(self.logNum_le.text())
+        file_path: str = h.select_file(str(self.model.wdir))
+        self.file_path_sig.emit(file_path)
+        self.SN_sig.emit(self.SN_le.text())
+        self.logNum_sig.emit(self.logNum_le.text())
         self.csvIt_sig.emit(self.csvIt_cb.isChecked())
         self.convertLog_sig.emit(self.printIt_cb.isChecked())
+        self.convertLog_pb.setText('Converting Log...')
 
     @Slot()
     def receive_connected_sig(self) -> None:

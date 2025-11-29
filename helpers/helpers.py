@@ -96,7 +96,7 @@ def get_ini_info(
     }
 
 
-def get_folder_path() -> str:
+def select_folder() -> str:
     """
     Open a file dialog to select a folder.
 
@@ -113,6 +113,15 @@ def get_folder_path() -> str:
     )
 
     return folder_path
+
+
+def select_file(default_dir: str) -> str:
+    file_path: str
+    file_path, _ = QFileDialog.getOpenFileName(
+        parent=None, caption='Choose File', dir=default_dir
+    )
+
+    return file_path
 
 
 if __name__ == '__main__':
