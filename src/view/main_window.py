@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
 
         self.exit_action.triggered.connect(self.handle_exit_triggered)
         self.connect_action.triggered.connect(self.handle_connect_triggered)
-        self.change_wdir_action.triggered.connect(self.handle_change_save_dir_triggered)
+        self.change_wdir_action.triggered.connect(self.handle_change_wdir_triggered)
 
     def handle_printIt_clicked(self) -> None:
         if self.printIt_cb.isChecked():
@@ -167,8 +167,8 @@ class MainWindow(QMainWindow):
         self.logNum_sig.emit(self.logNum_le.text())
         self.commandIt_sig.emit()
 
-    def handle_change_save_dir_triggered(self) -> None:
-        self.change_save_dir_sig.emit()
+    def handle_change_wdir_triggered(self) -> None:
+        self.change_wdir_sig.emit()
 
     def handle_connect_triggered(self) -> None:
         self.connection_window.show()
