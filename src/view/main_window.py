@@ -31,10 +31,11 @@ class MainWindow(QMainWindow):
     printIt_sig = Signal(bool)
     commandIt_sig = Signal()
     convertLog_sig = Signal(bool)
-    SN_changed_sig = Signal(str)
-    logNum_changed_sig = Signal(str)
+    SN_sig = Signal(str)
+    logNum_sig = Signal(str)
     MWconnect_sig = Signal()
-    change_save_dir_sig = Signal()
+    change_wdir_sig = Signal()
+    file_path_sig = Signal(str)
 
     def __init__(self, model: Model) -> None:
         super().__init__()
