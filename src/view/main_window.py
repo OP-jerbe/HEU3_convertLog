@@ -163,8 +163,8 @@ class MainWindow(QMainWindow):
             return
         self.commandIt_pb.setEnabled(False)
         self.commandIt_pb.setText('Getting Data...')
-        self.SN_changed_sig.emit(self.SN_le.text())
-        self.logNum_changed_sig.emit(self.logNum_le.text())
+        self.SN_sig.emit(self.SN_le.text())
+        self.logNum_sig.emit(self.logNum_le.text())
         self.commandIt_sig.emit()
 
     def handle_change_save_dir_triggered(self) -> None:
