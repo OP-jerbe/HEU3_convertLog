@@ -184,6 +184,10 @@ class MainWindow(QMainWindow):
     def handle_convertLog_clicked(self) -> None:
         self.convertLog_pb.setEnabled(False)
         file_path: str = h.select_file(str(self.model.wdir))
+        if not file_path:
+            self.convertLog_pb.setEnabled(True)
+            self.csvIt_cb.setEnabled(True)
+            return
         self.file_path_sig.emit(file_path)
         self.SN_sig.emit(self.SN_le.text())
         self.logNum_sig.emit(self.logNum_le.text())
