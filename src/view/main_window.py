@@ -4,7 +4,6 @@ from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
-    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLineEdit,
