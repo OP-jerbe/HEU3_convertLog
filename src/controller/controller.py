@@ -42,7 +42,6 @@ class Controller(QObject):
 
     @Slot(str)
     def receive_file_path_sig(self, file_path: str) -> None:
-        print(file_path)
         self.model.logIn_txt = Path(file_path)
 
     @Slot(bool)
