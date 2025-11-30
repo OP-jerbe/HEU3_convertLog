@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import TypeAlias
 
 from PySide6.QtWidgets import QFileDialog
-from serial import Serial
 
 ConfigData: TypeAlias = configparser.ConfigParser
 
