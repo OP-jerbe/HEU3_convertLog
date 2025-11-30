@@ -79,9 +79,15 @@ class MainWindow(QMainWindow):
         self.csvIt_cb = QCheckBox('Create CSV')
         self.csvIt_cb.setChecked(True)
         self.commandIt_pb = QPushButton('Pull Data Log')
-        self.convertLog_pb = QPushButton('Convert Log')
         self.SN_le = QLineEdit(placeholderText='Enter Serial Number')
         self.logNum_le = QLineEdit(placeholderText='Enter Log Number')
+        self.convertLog_pb = QPushButton('Convert Log')
+
+        if not self.model.ser:
+            self.SN_le.setEnabled(False)
+            self.logNum_le.setEnabled(False)
+            self.commandIt_pb.setEnabled(False)
+            self.commandIt_pb.setText('No HEU Connection')
 
         # Create a fixed-height vertical spacer (20 is minimum width, doesn't matter much here)
         width = 20
