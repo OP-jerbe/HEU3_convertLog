@@ -9,6 +9,8 @@ from src.controller.controller import Controller
 from src.model.model import Model
 from src.view.main_window import MainWindow
 
+# TODO: fix what happens when the user cancels choosing a file to convert.
+
 
 def run_app() -> NoReturn:
     load_ini()
