@@ -183,6 +183,7 @@ class MainWindow(QMainWindow):
 
     def handle_convertLog_clicked(self) -> None:
         self.convertLog_pb.setEnabled(False)
+        self.csvIt_cb.setEnabled(False)
         file_path: str = h.select_file(str(self.model.wdir))
         if not file_path:
             self.convertLog_pb.setEnabled(True)
@@ -197,13 +198,17 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def receive_connected_sig(self) -> None:
+        self.SN_le.setEnabled(True)
+        self.logNum_le.setEnabled(True)
         self.commandIt_pb.setEnabled(True)
         self.commandIt_pb.setText('Pull Data Log')
 
     @Slot(str)
     def receive_not_connected_sig(self, error: str) -> None:
+        self.SN_le.setEnabled(False)
+        self.logNum_le.setEnabled(False)
         self.commandIt_pb.setEnabled(False)
-        self.commandIt_pb.setText('Not Connected')
+        self.commandIt_pb.setText('No HEU Connection')
         popup.could_not_connect_mb(error, parent=self)
 
     @Slot()
@@ -223,11 +228,13 @@ class MainWindow(QMainWindow):
     def receive_convertLog_worker_finished_sig(self, success: bool) -> None:
         if success:
             popup.show_save_loction_mb(save_loc=str(self.model.wdir), parent=self)
+        self.csvIt_cb.setEnabled(True)
         self.convertLog_pb.setEnabled(True)
         self.convertLog_pb.setText('Convert Log')
 
     @Slot(str)
     def receive_convertLog_failed_sig(self, error: str) -> None:
+        self.csvIt_cb.setEnabled(True)
         self.convertLog_pb.setEnabled(True)
         self.convertLog_pb.setText('Convert Log')
         popup.convertLog_failed_mb(error, parent=self)
