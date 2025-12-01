@@ -1,4 +1,4 @@
-VERSION: str = '1.4.1'
+VERSION: str = '1.4.2'
 
 COM_PORT: str = 'COM9'
 
