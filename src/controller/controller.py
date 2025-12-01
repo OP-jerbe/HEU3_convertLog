@@ -27,10 +27,6 @@ class Controller(QObject):
     def receive_printIt_sig(self, printIt: bool) -> None:
         self.model.printIt = printIt
 
-    @Slot()
-    def receive_commandIt_sig(self) -> None:
-        self.model.start_commandIt_worker()
-
     @Slot(str)
     def receive_file_path_sig(self, file_path: str) -> None:
         self.model.logIn_txt = Path(file_path)
@@ -38,6 +34,10 @@ class Controller(QObject):
     @Slot(str)
     def receive_folder_path_sig(self, folder_path: str) -> None:
         self.model.wdir = Path(folder_path)
+
+    @Slot()
+    def receive_commandIt_sig(self) -> None:
+        self.model.start_commandIt_worker()
 
     @Slot(bool, bool)
     def receive_convertLog_sig(self, printIt: bool, csvIt: bool) -> None:
