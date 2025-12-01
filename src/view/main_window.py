@@ -27,7 +27,6 @@ from ..view.connection_window import ConnectionWindow
 class MainWindow(QMainWindow):
     # Define Signals to emit to Controller
     commandIt_sig = Signal()
-    MWconnect_sig = Signal()
     printIt_sig = Signal(bool)  # is `Print Log` checked?
     convertLog_sig = Signal(bool, bool)  # is `Print Log` and `Create CSV` checked?
     fname_sig = Signal(str, str)  # serial number and log number
