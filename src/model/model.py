@@ -63,7 +63,8 @@ class Model(QObject):
         self.output_txt = self.output_dir / Path(self.logIn_txt.stem + 'out.txt')
         self.output_csv = self.output_dir / Path(self.logIn_txt.stem + 'out.csv')
         self.output_txt.touch()
-        self.output_csv.touch()
+        if self.csvIt:
+            self.output_csv.touch()
 
     def serial_connect(self, com_port: str) -> None:
         try:
