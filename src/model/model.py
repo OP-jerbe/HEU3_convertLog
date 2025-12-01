@@ -110,9 +110,7 @@ class Model(QObject):
                 if readstr == '>\n':
                     ambleState = 3  # postamble, first line
                 if ambleState == 2:  # guts, the rest
-                    with open(
-                        self.output_dir / Path(self.fname + '.txt'), 'w'
-                    ) as logOut:
+                    with open(self.wdir / Path(self.fname + '.txt'), 'w') as logOut:
                         logOut.writelines(readstr)
                 if ambleState == 1:
                     ambleState += 1
