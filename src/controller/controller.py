@@ -6,10 +6,6 @@ import helpers.helpers as h
 
 from ..model.model import Model
 from ..view.main_window import MainWindow
-from ..view.popups import (
-    commandIt_failed_mb,
-    show_save_loction_mb,
-)
 
 
 class Controller(QObject):
