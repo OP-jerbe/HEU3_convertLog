@@ -161,21 +161,6 @@ class MainWindow(QMainWindow):
     def handle_exit_triggered(self) -> None:
         self.close()
 
-    @Slot()
-    def receive_connected_sig(self) -> None:
-        self.SN_le.setEnabled(True)
-        self.logNum_le.setEnabled(True)
-        self.commandIt_pb.setEnabled(True)
-        self.commandIt_pb.setText('Pull Data Log')
-
-    @Slot(str)
-    def receive_not_connected_sig(self, error: str) -> None:
-        self.SN_le.setEnabled(False)
-        self.logNum_le.setEnabled(False)
-        self.commandIt_pb.setEnabled(False)
-        self.commandIt_pb.setText('No HEU Connection')
-        popup.could_not_connect_mb(error, parent=self)
-
     def handle_commandIt_clicked(self) -> None:
         # Make sure the user has put text in for the serial and log numbers.
         if not self.SN_le.text() or not self.logNum_le.text():
@@ -231,3 +216,18 @@ class MainWindow(QMainWindow):
         self.convertLog_pb.setEnabled(True)
         self.convertLog_pb.setText('Convert Log')
         popup.convertLog_failed_mb(error, parent=self)
+
+    @Slot()
+    def receive_connected_sig(self) -> None:
+        self.SN_le.setEnabled(True)
+        self.logNum_le.setEnabled(True)
+        self.commandIt_pb.setEnabled(True)
+        self.commandIt_pb.setText('Pull Data Log')
+
+    @Slot(str)
+    def receive_not_connected_sig(self, error: str) -> None:
+        self.SN_le.setEnabled(False)
+        self.logNum_le.setEnabled(False)
+        self.commandIt_pb.setEnabled(False)
+        self.commandIt_pb.setText('No HEU Connection')
+        popup.could_not_connect_mb(error, parent=self)
