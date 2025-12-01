@@ -32,15 +32,14 @@ class Model(QObject):
         self.startLine: int = C.START_LINE
         self.endLine: int = C.END_LINE
 
+        self.ser: Serial | None = None
         self.logNum: str = ''  # QLineEdit in gui
         self.SN: str = ''  # QLineEdit or pull from the HEU (need HEU3 API)
         self.wdir: Path = self._get_log_data_dir()  # default to log_data dir
-        # self.fname = f'sn{self.SN}log{self.logNum}'
         self.printIt: bool = False  # QCheckbox in gui
         self.csvIt: bool = True  # QCheckbox in gui
         self.threadpool = QThreadPool()
 
-        self.ser: Serial | None = None
         self.fname: str
         self.logIn_txt: Path
         self.output_dir: Path
@@ -52,8 +51,8 @@ class Model(QObject):
     @staticmethod
     def _get_log_data_dir() -> Path:
         root_dir = h.get_root_dir()
-        log_data_dir = Path(root_dir / 'log_data_test')
-        log_data_dir.mkdir(parents=True, exist_ok=True)
+        log_data_dir = Path(root_dir / 'log_data')
+        log_data_dir.mkdir(parents=True, exist_ok=True)  # make sure dir exists
         return log_data_dir
 
     def _make_output_dir(self) -> None:
