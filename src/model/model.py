@@ -56,12 +56,12 @@ class Model(QObject):
         return log_data_dir
 
     def _make_output_dir(self) -> None:
-        self.output_dir = self.logIn_txt.parent / Path(self.logIn_txt.stem + 'out')
+        self.output_dir = self.wdir / Path(self.fname + 'out')
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _make_output_files(self) -> None:
-        self.output_txt = self.output_dir / Path(self.logIn_txt.stem + 'out.txt')
-        self.output_csv = self.output_dir / Path(self.logIn_txt.stem + 'out.csv')
+        self.output_txt = self.output_dir / Path(self.fname + 'out.txt')
+        self.output_csv = self.output_dir / Path(self.fname + 'out.csv')
         self.output_txt.touch()
         if self.csvIt:
             self.output_csv.touch()

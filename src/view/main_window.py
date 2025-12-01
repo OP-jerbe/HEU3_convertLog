@@ -172,8 +172,8 @@ class MainWindow(QMainWindow):
             self.commandIt_pb.setEnabled(True)
             self.commandIt_pb.setText('Pull Data Log')
             return
-        self.folder_path_sig.emit(folder_path)
         self.fname_sig.emit(self.SN_le.text(), self.logNum_le.text())
+        self.folder_path_sig.emit(folder_path)
         self.commandIt_sig.emit()
 
     def handle_convertLog_clicked(self) -> None:
