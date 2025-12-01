@@ -26,15 +26,13 @@ from ..view.connection_window import ConnectionWindow
 
 class MainWindow(QMainWindow):
     # Define Signals to emit to Controller
-    csvIt_sig = Signal(bool)
-    printIt_sig = Signal(bool)
     commandIt_sig = Signal()
-    convertLog_sig = Signal(bool)
-    SN_sig = Signal(str)
-    logNum_sig = Signal(str)
     MWconnect_sig = Signal()
-    change_wdir_sig = Signal()
-    file_path_sig = Signal(str)
+    printIt_sig = Signal(bool)  # is `Print Log` checked?
+    convertLog_sig = Signal(bool, bool)  # is `Print Log` and `Create CSV` checked?
+    fname_sig = Signal(str, str)  # serial number and log number
+    file_path_sig = Signal(str)  # path to data log to convert
+    folder_path_sig = Signal(str)  # path to folder to save data log to
 
     def __init__(self, model: Model) -> None:
         super().__init__()
@@ -140,20 +138,16 @@ class MainWindow(QMainWindow):
     def _create_menubar(self) -> None:
         self.exit_action = QAction(text='Exit', parent=self)
         self.connect_action = QAction(text='Connect', parent=self)
-        self.change_wdir_action = QAction(text='Change Working Directory', parent=self)
 
         self.menu_bar = self.menuBar()
         self.file_menu = self.menu_bar.addMenu('File')
-        self.option_menu = self.menu_bar.addMenu('Options')
         # self.help_menu = self.menu_bar.addMenu('Help')
 
         self.file_menu.addAction(self.connect_action)
         self.file_menu.addAction(self.exit_action)
-        self.option_menu.addAction(self.change_wdir_action)
 
         self.exit_action.triggered.connect(self.handle_exit_triggered)
         self.connect_action.triggered.connect(self.handle_connect_triggered)
-        self.change_wdir_action.triggered.connect(self.handle_change_wdir_triggered)
 
     def handle_printIt_clicked(self) -> None:
         if self.printIt_cb.isChecked():
@@ -161,40 +155,11 @@ class MainWindow(QMainWindow):
         else:
             self.printIt_sig.emit(False)
 
-    def handle_commandIt_clicked(self) -> None:
-        # Make sure the user has put text in for the serial and log numbers.
-        if not self.SN_le.text() or not self.logNum_le.text():
-            popup.missing_SN_logNum_mb(self)  # error message box
-            return
-        self.commandIt_pb.setEnabled(False)
-        self.commandIt_pb.setText('Getting Data...')
-        self.SN_sig.emit(self.SN_le.text())
-        self.logNum_sig.emit(self.logNum_le.text())
-        self.commandIt_sig.emit()
-
-    def handle_change_wdir_triggered(self) -> None:
-        self.change_wdir_sig.emit()
-
     def handle_connect_triggered(self) -> None:
         self.connection_window.show()
 
     def handle_exit_triggered(self) -> None:
         self.close()
-
-    def handle_convertLog_clicked(self) -> None:
-        self.convertLog_pb.setEnabled(False)
-        self.csvIt_cb.setEnabled(False)
-        file_path: str = h.select_file(str(self.model.wdir))
-        if not file_path:
-            self.convertLog_pb.setEnabled(True)
-            self.csvIt_cb.setEnabled(True)
-            return
-        self.file_path_sig.emit(file_path)
-        self.SN_sig.emit(self.SN_le.text())
-        self.logNum_sig.emit(self.logNum_le.text())
-        self.csvIt_sig.emit(self.csvIt_cb.isChecked())
-        self.convertLog_sig.emit(self.printIt_cb.isChecked())
-        self.convertLog_pb.setText('Converting Log...')
 
     @Slot()
     def receive_connected_sig(self) -> None:
@@ -211,18 +176,40 @@ class MainWindow(QMainWindow):
         self.commandIt_pb.setText('No HEU Connection')
         popup.could_not_connect_mb(error, parent=self)
 
+    def handle_commandIt_clicked(self) -> None:
+        # Make sure the user has put text in for the serial and log numbers.
+        if not self.SN_le.text() or not self.logNum_le.text():
+            popup.missing_SN_logNum_mb(self)  # error message box
+            return
+        self.commandIt_pb.setEnabled(False)
+        self.commandIt_pb.setText('Getting Data...')
+        folder_path: str = h.select_folder()
+        if not folder_path:
+            self.commandIt_pb.setEnabled(True)
+            self.commandIt_pb.setText('Pull Data Log')
+            return
+        self.folder_path_sig.emit(folder_path)
+        self.fname_sig.emit(self.SN_le.text(), self.logNum_le.text())
+        self.commandIt_sig.emit()
+
+    def handle_convertLog_clicked(self) -> None:
+        self.convertLog_pb.setEnabled(False)
+        self.csvIt_cb.setEnabled(False)
+        file_path: str = h.select_file(str(self.model.wdir))
+        if not file_path:
+            self.convertLog_pb.setEnabled(True)
+            self.csvIt_cb.setEnabled(True)
+            return
+        self.file_path_sig.emit(file_path)
+        self.convertLog_sig.emit(self.printIt_cb.isChecked(), self.csvIt_cb.isChecked())
+        self.convertLog_pb.setText('Converting Log...')
+
     @Slot()
     def receive_commandIt_worker_finished_sig(self, success: bool) -> None:
         if success:
             popup.show_save_loction_mb(save_loc=str(self.model.wdir), parent=self)
         self.commandIt_pb.setEnabled(True)
         self.commandIt_pb.setText('Pull Data Log')
-
-    @Slot(str)
-    def receive_commandIt_failed_sig(self, error: str) -> None:
-        self.commandIt_pb.setEnabled(True)
-        self.commandIt_pb.setText('Pull Data Log')
-        popup.commandIt_failed_mb(error, parent=self)
 
     @Slot(bool)
     def receive_convertLog_worker_finished_sig(self, success: bool) -> None:
@@ -231,6 +218,12 @@ class MainWindow(QMainWindow):
         self.csvIt_cb.setEnabled(True)
         self.convertLog_pb.setEnabled(True)
         self.convertLog_pb.setText('Convert Log')
+
+    @Slot(str)
+    def receive_commandIt_failed_sig(self, error: str) -> None:
+        self.commandIt_pb.setEnabled(True)
+        self.commandIt_pb.setText('Pull Data Log')
+        popup.commandIt_failed_mb(error, parent=self)
 
     @Slot(str)
     def receive_convertLog_failed_sig(self, error: str) -> None:

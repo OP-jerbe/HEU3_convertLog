@@ -14,11 +14,11 @@ from .worker import Worker
 class Model(QObject):
     # Define Signals to emit to View
     connected_sig = Signal()
-    not_connected_sig = Signal(str)
-    commandIt_worker_finished_sig = Signal(bool)
-    commandIt_failed_sig = Signal(str)
-    convertLog_worker_finished_sig = Signal(bool)
-    convertLog_failed_sig = Signal(str)
+    commandIt_worker_finished_sig = Signal(bool)  # success?
+    convertLog_worker_finished_sig = Signal(bool)  # success?
+    not_connected_sig = Signal(str)  # error message
+    commandIt_failed_sig = Signal(str)  # error message
+    convertLog_failed_sig = Signal(str)  # error message
 
     def __init__(self) -> None:
         super().__init__()
@@ -34,13 +34,14 @@ class Model(QObject):
 
         self.logNum: str = ''  # QLineEdit in gui
         self.SN: str = ''  # QLineEdit or pull from the HEU (need HEU3 API)
-        self.fname = f'sn{self.SN}log{self.logNum}'
-        self.wdir: Path = self._get_log_data_dir()  # location of HEU log text file
+        self.wdir: Path = self._get_log_data_dir()  # default to log_data dir
+        # self.fname = f'sn{self.SN}log{self.logNum}'
         self.printIt: bool = False  # QCheckbox in gui
         self.csvIt: bool = True  # QCheckbox in gui
         self.threadpool = QThreadPool()
 
         self.ser: Serial | None = None
+        self.fname: str
         self.logIn_txt: Path
         self.output_dir: Path
         self.output_txt: Path
@@ -51,7 +52,9 @@ class Model(QObject):
     @staticmethod
     def _get_log_data_dir() -> Path:
         root_dir = h.get_root_dir()
-        return Path(root_dir / 'log_data')
+        log_data_dir = Path(root_dir / 'log_data_test')
+        log_data_dir.mkdir(parents=True, exist_ok=True)
+        return log_data_dir
 
     def _make_output_dir(self) -> None:
         self.output_dir = self.logIn_txt.parent / Path(self.logIn_txt.stem + 'out')
@@ -71,11 +74,6 @@ class Model(QObject):
             self.ser = None
             self.not_connected_sig.emit(str(e))
 
-    def change_wdir(self) -> None:
-        folder_path: str = h.select_folder()
-        if folder_path:
-            self.wdir = Path(folder_path)
-
     def start_commandIt_worker(self) -> None:
         self._make_output_dir()
         self.worker = Worker(self._commandIt)
@@ -93,7 +91,7 @@ class Model(QObject):
         self.threadpool.start(self.worker)
 
     def _commandIt(self) -> None:
-        success: bool = False
+        success_flag: bool = False
         try:
             if not self.ser:
                 self.not_connected_sig.emit('No Serial Connection')
@@ -120,15 +118,15 @@ class Model(QObject):
                 if ambleState == 3:
                     ambleState += 1
 
-            success = True
+            success_flag = True
         except Exception as e:
             self.commandIt_failed_sig.emit(str(e))
 
         finally:
-            self.commandIt_worker_finished_sig.emit(success)
+            self.commandIt_worker_finished_sig.emit(success_flag)
 
     def _convertLog(self, input_data: Path, output_txt: Path, output_csv: Path) -> None:
-        success: bool = False
+        success_flag: bool = False
         try:
             date = '<none>'  # Latest read
             startDate = ''  # first date in log
@@ -792,10 +790,10 @@ class Model(QObject):
                 print('End  :', endDate, endTime, endSecs)
             print(linenum, 'lines +', extraLines, 'added')
 
-            success = True
+            success_flag = True
 
         except Exception as e:
             self.convertLog_failed_sig.emit(str(e))
 
         finally:
-            self.convertLog_worker_finished_sig.emit(success)
+            self.convertLog_worker_finished_sig.emit(success_flag)
