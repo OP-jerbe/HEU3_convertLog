@@ -59,13 +59,13 @@ class MainWindow(QMainWindow):
         self.create_gui()
 
     def create_gui(self) -> None:
-        window_width = 330
+        window_width = 335
         window_height = 250
         self.setFixedSize(window_width, window_height)
         root_dir: Path = h.get_root_dir()
         icon_path: str = str(root_dir / 'assets' / 'icon.ico')
         self.setWindowIcon(QIcon(icon_path))
-        self.setWindowTitle(f'HEU3 convertLog (v{self.version})')
+        self.setWindowTitle(f'HEU3 Data Log Handler (v{self.version})')
         apply_stylesheet(self, theme='dark_lightgreen.xml', invert_secondary=True)
         self.setStyleSheet(self.styleSheet() + """QLineEdit {color: lightgreen;}""")
 
