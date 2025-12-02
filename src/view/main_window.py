@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
         self.create_gui()
 
     def create_gui(self) -> None:
-        window_width = 335
+        window_width = 350
         window_height = 250
         self.setFixedSize(window_width, window_height)
         root_dir: Path = h.get_root_dir()
