@@ -75,7 +75,6 @@ class Model(QObject):
             self.not_connected_sig.emit(str(e))
 
     def start_commandIt_worker(self) -> None:
-        self._make_output_dir()
         self.worker = Worker(self._commandIt)
         self.threadpool.start(self.worker)
 
