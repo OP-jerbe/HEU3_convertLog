@@ -95,28 +95,30 @@ class Model(QObject):
             if not self.ser:
                 self.not_connected_sig.emit('No Serial Connection')
                 return
-            self.ser.write(f'frlog977{self.megs:04.0f}\n'.encode())
-            reply = self.ser.readlines(1048576 * self.megs)
-            ambleState = 0  # 0==printable preamble: command echo, file size.
-            for lines in reply:
-                readstr = str(lines.decode('utf-8'))
-                if ambleState < 2 and readstr[0:6] == 'Serial':
-                    SN = readstr[14:18]
-                    # Check that user input SN is the same as SN in HEU
-                    if SN != self.SN:
-                        self.SN = SN
-                if readstr == '<\n':
-                    ambleState = 1  # guts, first line
-                if readstr == '>\n':
-                    ambleState = 3  # postamble, first line
-                if ambleState == 2:  # guts, the rest
-                    output_path = self.wdir / f'{self.fname}.txt'
-                    with open(output_path, 'w') as logOut:
+            output_path = self.wdir / f'{self.fname}.txt'
+            with open(output_path, 'w') as logOut:
+                self.ser.write(f'frlog977{self.megs:04.0f}\n'.encode())
+                reply = self.ser.readlines(1048576 * self.megs)
+                ambleState = 0  # 0==printable preamble: command echo, file size.
+                for lines in reply:
+                    readstr = str(lines.decode('utf-8'))
+                    if ambleState < 2 and readstr[0:6] == 'Serial':
+                        SN = readstr[14:18]
+                        # Check that user input SN is the same as SN in HEU
+                        if SN != self.SN:
+                            self.SN = SN
+                    if readstr == '<\n':
+                        ambleState = 1  # guts, first line
+                    if readstr == '>\n':
+                        ambleState = 3  # postamble, first line
+                    if ambleState == 2:  # guts, the rest
                         logOut.writelines(readstr)
-                if ambleState == 1:
-                    ambleState += 1
-                if ambleState == 3:
-                    ambleState += 1
+                        if self.printIt:
+                            print(readstr)
+                    if ambleState == 1:
+                        ambleState += 1
+                    if ambleState == 3:
+                        ambleState += 1
 
             success_flag = True
         except Exception as e:
